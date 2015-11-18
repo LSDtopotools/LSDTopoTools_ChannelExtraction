@@ -7,5 +7,4 @@ There are four different channel extraction methods:
 3. DrEICH algorithm (Clubb et al., 2014) - channel_extraction_dreich.cpp and channel_extraction_dreich.make
 4. Geometric algorithm using Wiener filter - channel_extraction_wiener.cpp and channel_extraction_wiener.make
 
-For instructions and full documentation on how to run each of these methods please see the LSDTopoTools website
-(http://lsdtopotools.github.io/LSDTT_book/).  Example drivers for each of the methods can be found in BLAH repository.
+For instructions and full documentation on how to run each of these methods please see the [LSDTopoTools website](http://lsdtopotools.github.io/LSDTT_book/).  Example drivers for each of the methods can be found in BLAH repository.

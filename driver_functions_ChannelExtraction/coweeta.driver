@@ -1,0 +1,9 @@
+RasterFile /media/sf_Projects/HollowExtractionAnalysis/Data/Data_1m_small/dem
+OutputRasterFile /media/sf_Projects/HollowExtractionAnalysis/Data/Data_1m_small/dem_channel_mask
+QQFile /media/sf_Projects/HollowExtractionAnalysis/Data/Data_1m_small/dem_qq
+window_radius_for_surface_fitting 3
+threshold_drainage_area 0
+connected_components_threshold 5
+A_0 1000
+m_over_n 0.365
+number_of_junctions_dreich 3

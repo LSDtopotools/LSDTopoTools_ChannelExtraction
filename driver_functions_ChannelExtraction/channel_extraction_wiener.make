@@ -6,16 +6,16 @@ OFLAGS = -Wall -O3
 LDFLAGS= -Wall
 SOURCES=channel_extraction_wiener.cpp \
         ../LSDMostLikelyPartitionsFinder.cpp \
-        ../LSDIndexRaster.cpp \
-        ../LSDRaster.cpp \
-        ../LSDRasterSpectral.cpp \
+        ../LSDIndexRaster.cpp \ 
+        ../LSDRaster.cpp \ 
+        ../LSDRasterSpectral.cpp \ 
         ../LSDFlowInfo.cpp \
-        ../LSDJunctionNetwork.cpp \
-        ../LSDIndexChannel.cpp \
+        ../LSDJunctionNetwork.cpp \ 
+        ../LSDIndexChannel.cpp \ 
         ../LSDChannel.cpp \
-        ../LSDIndexChannelTree.cpp \
-        ../LSDStatsTools.cpp \
-        ../LSDChiNetwork.cpp \
+        ../LSDIndexChannelTree.cpp \ 
+        ../LSDStatsTools.cpp \ 
+        ../LSDChiNetwork.cpp \ 
         ../LSDShapeTools.cpp 
 LIBS= -lm -lstdc++ -lfftw3
 OBJECTS=$(SOURCES:.cpp=.o)

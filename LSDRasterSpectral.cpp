@@ -261,6 +261,19 @@ void LSDRasterSpectral::create(LSDRaster& An_LSDRaster)
   NyquistFreq = 1/(2*DataResolution);
   WSS=float(NRows*NCols);
   RasterData = An_LSDRaster.get_RasterData();
+  
+  cout << "Loaded a spectralreaster from another raster. Here are the vitalstatistix." << endl;
+  cout << "NRows = " << NRows << endl;
+  cout << "NCols = " << NCols  << endl;
+  cout << "XMinimum = " << XMinimum  << endl;
+  cout << "YMinimum = " << YMinimum  << endl;
+  cout << "DataResolution =" << DataResolution  << endl;
+  cout << "NoDataValue = " <<  NoDataValue << endl;
+  cout << "Ly = " << Ly  << endl;
+  cout << "Lx = " << Lx  << endl;
+  cout << "dfx = " << dfx   << endl;
+  cout << "dfy = " << dfy   << endl;
+  cout << "WSS= " << WSS  << endl;
 
 }
 //=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
@@ -2016,7 +2029,9 @@ void LSDRasterSpectral::find_rollover_frequency(float& rollover_frequency, float
   // frequencies in log-log space.  in each iteration, removing bins of lower
   // frequency.  Calculate the R-squared value and beta value
   float beta_max = 0;
+  float r2_max = 0;
   float rollover_freq = 0;
+  float rollover_freq_r2 = 0;
   int NBins = bin_mean_PSD.size();
   vector<float> log_bin_mean_PSD,log_bin_mean_freq;
   vector<int> bin_index;
@@ -2027,6 +2042,10 @@ void LSDRasterSpectral::find_rollover_frequency(float& rollover_frequency, float
   {
     if((bin_mean_PSD[i]!=NoDataValue)&&(bin_mean_freq[i]!=NoDataValue))
     {
+      if(bin_mean_PSD[i]==0 || bin_mean_freq[i] == 0)
+      {
+        cout << "Ahhh I am about to take the log of zero! Segmentation fault imminent!!!" << endl;
+      }
       log_bin_mean_PSD.push_back(log10(bin_mean_PSD[i]));
       log_bin_mean_freq.push_back(log10(bin_mean_freq[i]));
       bin_index.push_back(i);
@@ -2035,31 +2054,72 @@ void LSDRasterSpectral::find_rollover_frequency(float& rollover_frequency, float
   
   int cutoff = log_bin_mean_freq.size()-log_bin_mean_freq.size()/5;
   int rollover_index = 0;
+  int rollover_index_r2 = 0;
   vector<float> beta_vec(log_bin_mean_freq.size(),NoDataValue);
   vector<float> R_sq_vec(log_bin_mean_freq.size(),NoDataValue);
+  cout << "\t\t\t\t\t 3) Now I am working on the cutoff....";
   for(int i = 0; i<cutoff;++i)
   {
     float R_sq_i,beta_i,intercept;
     vector<float> PSD_iter = slice_vector(log_bin_mean_PSD.begin()+i, log_bin_mean_PSD.end());
     vector<float> Freq_iter = slice_vector(log_bin_mean_freq.begin()+i, log_bin_mean_freq.end());
-//     cout << Freq_iter[0] << " " << PSD_iter.size() << "/" << log_bin_mean_PSD.size() << endl; 
+    
     least_squares_linear_regression(Freq_iter,PSD_iter,intercept,beta_i, R_sq_i);
     beta_i=-beta_i;
     beta_vec[i]=beta_i;
     R_sq_vec[i]=R_sq_i;
+    cout << "log Freq: " << Freq_iter[0] << " beta: " << beta_i << " R_sq: " << R_sq_i << " " << PSD_iter.size() << "/" << log_bin_mean_PSD.size() << endl; 
     if(beta_i>beta_max)
     {
       beta_max = beta_i;
       rollover_freq = bin_mean_freq[bin_index[i]];
       rollover_index = i;
     }
+    if(R_sq_i > r2_max)
+    {
+      r2_max = R_sq_i;
+      rollover_freq_r2 = bin_mean_freq[bin_index[i]];
+      rollover_index_r2 = i;
+    }
   }
+  cout << "done."<< endl;
+  
+  cout << "Rollover index is: " << rollover_index << endl;
+  cout << "rollover frequency is: " << rollover_freq << endl;
+  cout << "beta_max is: " << beta_max << endl;
+  
+  // check if R2 gives a peak
+  int n_data = int(log_bin_mean_PSD.size());
+  if (rollover_index == 0 || rollover_index == n_data-1)
+  {
+    rollover_index = rollover_index_r2;
+    cout << "I don't like that index since it will crash the program. " << endl
+         << "Using R^2 to fit the rollover instead." << endl;
+    cout << "The max r2 is: " << r2_max << " and index: " << rollover_index << endl; 
+  }
+  
+  // if the rollover index is still 0, we use the entire power spectrum to fit
+  if (rollover_index == 0)
+  {
+    rollover_index = n_data-1;
+  }
+  
+  
   // Now get the scaling factor for the spectrum with frequencies below the 
   // rollover frequency
+  
+  cout << "\t\t\t\t\t 4) Slicing the vectors....";
   vector<float> PSD_below_rollover = slice_vector(log_bin_mean_PSD.begin()+2, log_bin_mean_PSD.begin()+rollover_index+1);
   vector<float> Freq_below_rollover = slice_vector(log_bin_mean_freq.begin()+2, log_bin_mean_freq.begin()+rollover_index+1);
+  cout << "done."<< endl;
+  
+  
+  
+  cout << "\t\t\t\t\t 5) Doing least squares regression....";
   float beta_2,R_sq2, intercept2;
   least_squares_linear_regression(Freq_below_rollover,PSD_below_rollover,intercept2,beta_2, R_sq2);
+  cout << "done."<< endl;
+  
     
   // Loop through the R-squared and beta values, finding maximum in beta, and
   // point at which dR_sq/df approaches 0 to pick the rollover frequency.
@@ -2096,7 +2156,7 @@ void LSDRasterSpectral::calculate_background_spectrum(float rollover_frequency, 
   float chi_squared_95 = 5.991;
   float chi_squared_99 = 9.210;
   float range = 1.0;
-  int feature_order = 7;
+  //int feature_order = 7;
   float RadialFreq;
   Array2D<float> SpectrumReal(Ly,Lx,0.0);
   Array2D<float> SpectrumImaginary(Ly,Lx,0.0);
@@ -2199,7 +2259,7 @@ void LSDRasterSpectral::calculate_background_spectrum(float rollover_frequency, 
     // Multiply output by complex conjugate and normalise.
     // Note that for complex number z=x+iy, z*=x-iy, z.z* = x^2 + y^2
     fractal_clip.calculate_2D_PSD(SpectrumReal, SpectrumImaginary); 
-    float variance_ratio = 0;
+    //float variance_ratio = 0;
     float variance_fractal_spectrum=0;
     float variance_topo_spectrum=0;
     for(int i = 0; i < P_DFT.dim1();++i)
@@ -2270,7 +2330,9 @@ void LSDRasterSpectral::full_spectral_analysis(float log_bin_width, int N_iterat
   // LOCAL SLOPE ax + by + c = z
   Array2D<float> zeta_detrend(NRows,NCols,0.0);
   Array2D<float> trend_plane(NRows,NCols,0.0);
+  cout << "Detrending the data...";
   detrend2D(RasterData, zeta_detrend, trend_plane);
+  cout << "finished!" << endl;
 
   //=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
   // USE ELLIPTICAL 2D HANN (raised cosine) WINDOW ON ZETA MATRIX.
@@ -2278,7 +2340,9 @@ void LSDRasterSpectral::full_spectral_analysis(float log_bin_width, int N_iterat
   // COEFFICIENTS.
   Array2D<float> window(NRows,NCols,0.0);
   Array2D<float> zeta_window(NRows,NCols,0.0);
+  cout << "Windowing the data...";
   window_data(zeta_detrend, zeta_window, window,window_option);
+  cout << "finished!"<< endl;
 
   //=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
   // 2D DISCRETE FAST FOURIER TRANSFORM
@@ -2408,7 +2472,7 @@ void LSDRasterSpectral::print_binned_spectrum(string output_id, float log_bin_wi
   log_bin_data(normCI95, RadialFrequency, log_bin_width, bin_midpoints, bin_CI_norm, bin_mean_freq, temp);
   log_bin_data(normCI99, RadialFrequency, log_bin_width, bin_midpoints, bin_CI_norm99, bin_mean_freq, temp);
   vector<int> bin_index;
-  for(int i = 0; i < bin_mean_freq.size(); ++i)
+  for(int i = 0; i < int(bin_mean_freq.size()); ++i)
   {
     if((bin_mean_PSD[i]!=NoDataValue)&&(bin_mean_freq[i]!=NoDataValue))
     {
@@ -2431,7 +2495,7 @@ void LSDRasterSpectral::print_binned_spectrum(string output_id, float log_bin_wi
     exit(EXIT_FAILURE);
   }
   ofs << "Freq Wavelength PSD R_sq Beta BackgroundPSD CI95 CI99 \n";
-  for(int i=0; i < bin_index.size(); ++i)
+  for(int i=0; i < int(bin_index.size()); ++i)
   {
     ofs << bin_mean_freq[bin_index[i]] << " " << 1/bin_mean_freq[bin_index[i]] << " " << bin_mean_PSD[bin_index[i]] << " " << R_sq[i] << " " << beta[i] << " " << bin_mean_background[bin_index[i]] << " " << bin_CI_norm[bin_index[i]] << " " << bin_CI_norm99[bin_index[i]] << " \n";
   }
@@ -2455,8 +2519,8 @@ LSDIndexRaster LSDRasterSpectral::IsolateChannelsWienerQQ(float area_threshold, 
   cout << "\t Isolation of channelised pixels using curvature" << endl;   
   // filter
   cout << "\t\t Wiener filter" << endl;
-  float slope_percentile = 90;
-  float dt = 0.1;
+  //float slope_percentile = 90;
+  //float dt = 0.1;
   LSDRaster FilteredTopo = fftw2D_wiener();
   // calculate curvature
   vector<LSDRaster> output_rasters;
@@ -2468,7 +2532,7 @@ LSDIndexRaster LSDRasterSpectral::IsolateChannelsWienerQQ(float area_threshold, 
   LSDRaster curvature = output_rasters[6];
   // use q-q plot to isolate the channels
   cout << "\t\t Finding threshold using q-q plot" << endl;
-  int half_width = 100;
+  //int half_width = 100;
   LSDIndexRaster channels_init = curvature.IsolateChannelsQuantileQuantile(q_q_filename);
   // Calculate D_inf
   cout << "\t\t D_inf flow routing" << endl;
@@ -2494,8 +2558,8 @@ LSDIndexRaster LSDRasterSpectral::IsolateChannelsWienerQQAdaptive(float area_thr
   cout << "\t Isolation of channelised pixels using curvature" << endl;   
   // filter
   cout << "\t\t Wiener filter" << endl;
-  float slope_percentile = 90;
-  float dt = 0.1;
+  //float slope_percentile = 90;
+  //float dt = 0.1;
   LSDRaster FilteredTopo = fftw2D_wiener();
   // calculate curvature
   vector<LSDRaster> output_rasters;

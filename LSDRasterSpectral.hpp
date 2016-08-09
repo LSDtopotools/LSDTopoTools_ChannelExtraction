@@ -86,7 +86,7 @@ using namespace TNT;
 class LSDRasterSpectral: public LSDRaster
 {
 public:
-  LSDRasterSpectral()		    	{ create(); }
+  LSDRasterSpectral()          { create(); }
 
   /// @brief Create an LSDRasterSpectral from a file.
   /// Uses a filename and file extension
@@ -95,7 +95,7 @@ public:
   /// @param extension A String, the file extension to be loaded.
   /// @author SMM
   /// @date 18/12/2012
-  LSDRasterSpectral(string filename, string extension)	{ create(filename, extension); }
+  LSDRasterSpectral(string filename, string extension)  { create(filename, extension); }
 
   /// @brief Create an LSDRasterSpectral from memory.
   /// @return LSDRasterSpectral
@@ -110,7 +110,7 @@ public:
   /// @author SMM
   /// @date 18/12/2012
   LSDRasterSpectral(int nrows, int ncols, float xmin, float ymin,
-		    float cellsize, float ndv, Array2D<float> data)
+        float cellsize, float ndv, Array2D<float> data)
   { create(nrows, ncols, xmin, ymin, cellsize, ndv, data); }
 
   /// @brief Create an LSDRasterSpectral from an LSDRaster object.
@@ -118,7 +118,7 @@ public:
   /// @return LSDRasterSpectral.
   /// @author SMM
   /// @date 18/12/2012
-  LSDRasterSpectral(LSDRaster& An_LSDRaster)		{ create(An_LSDRaster); }
+  LSDRasterSpectral(LSDRaster& An_LSDRaster)    { create(An_LSDRaster); }
 
   /// @brief Create an LSDRasterSpectral object that has dimensions 2^raster_order.
   /// @param raster order, that is the order of the raster dimension where
@@ -205,7 +205,7 @@ public:
   /// @author David Milodowski
   /// @date 18/12/2012
   void dfftw2D_fwd(Array2D<float>& InputArray, Array2D<float>& OutputArrayReal, Array2D<float>& OutputArrayImaginary,
-		   int transform_direction);
+       int transform_direction);
 
   /// @brief Computes the inverse fast fourier transform of a 2D discrete dataset.
   /// @param InputArrayReal = Real component of 2D spectrum.
@@ -215,8 +215,8 @@ public:
   /// @author David Milodowski
   /// @date 18/12/2012
   void dfftw2D_inv(Array2D<float>& InputArrayReal, Array2D<float>& InputArrayImaginary,
-		   Array2D<float>& OutputArray, int transform_direction);
-      	                 
+       Array2D<float>& OutputArray, int transform_direction);
+                         
   /// @brief Computes the inverse fast fourier transform of a 2D discrete dataset.
   /// @param InputArrayComplex = Complex array of a 2D spectrum (real and imaginary parts)
   /// @param OutputArray = reconstructed DEM.
@@ -224,7 +224,7 @@ public:
   /// @author DAV
   /// @date 22/10/2014
   void dfftw2D_inv_complex(Array2D< complex<float> >& InputArrayComplex, Array2D<float>& OutputArray, int transform_direction);
-	
+  
   /// @brief Detrend Data.
   ///
   /// @details Fit plane by least squares regression and use coefficients to determine local slope ax + by + c = z.
@@ -281,8 +281,8 @@ public:
   /// @author David Milodowski
   /// @date 18/12/2012
   void shift_spectrum(Array2D<float>& spectrum_real,  Array2D<float>& spectrum_imaginary,
-		      Array2D<float>& spectrum_real_shift, Array2D<float>& spectrum_imaginary_shift);  
-  	                    
+          Array2D<float>& spectrum_real_shift, Array2D<float>& spectrum_imaginary_shift);  
+                        
   /// @brief SHIFT ORIGIN OF SPECTRUM IN FOURIER DOMAIN.
   ///
   /// @details The output of the DFT algorithm must be rearranged to place the zero wavenumber element near the center of the array. This
@@ -304,7 +304,7 @@ public:
   /// @author David Milodowski
   /// @date 18/12/2012
   void shift_spectrum_inv(Array2D<float>& FilteredSpectrumReal, Array2D<float>& FilteredSpectrumImaginary,
-			  Array2D<float>& FilteredSpectrumReal_deshift, Array2D<float>& FilteredSpectrumImaginary_deshift);
+        Array2D<float>& FilteredSpectrumReal_deshift, Array2D<float>& FilteredSpectrumImaginary_deshift);
   /// @brief DE-SHIFT ORIGIN OF SPECTRUM.
   ///
   /// @details Inverse process of shift_spectrum() to return filtered spectrum to
@@ -378,8 +378,8 @@ public:
   /// @author David Milodowski
   /// @date 18/12/2012
   void bandpass_filter(Array2D<float>& RawSpectrumReal, Array2D<float>& RawSpectrumImaginary,
-		       Array2D<float>& FilteredSpectrumReal, Array2D<float>& FilteredSpectrumImaginary,
-		       float f1, float f2);
+           Array2D<float>& FilteredSpectrumReal, Array2D<float>& FilteredSpectrumImaginary,
+           float f1, float f2);
 
   /// @brief LOWPASS FILTER.
   ///
@@ -393,8 +393,8 @@ public:
   /// @author David Milodowski
   /// @date 18/12/2012
   void lowpass_filter(Array2D<float>& RawSpectrumReal, Array2D<float>& RawSpectrumImaginary,
-		      Array2D<float>& FilteredSpectrumReal, Array2D<float>& FilteredSpectrumImaginary,
-		      float f1, float f2);
+          Array2D<float>& FilteredSpectrumReal, Array2D<float>& FilteredSpectrumImaginary,
+          float f1, float f2);
     
   /// @brief LOWPASS FILTER REMAINDER.
   ///
@@ -408,8 +408,8 @@ public:
   /// @author David Milodowski
   /// @date 29/09/2014
   void lowpass_filter_remainder(Array2D<float>& RawSpectrumReal, Array2D<float>& RawSpectrumImaginary,
-				Array2D<float>& FilteredSpectrumReal, Array2D<float>& FilteredSpectrumImaginary,
-				float f1, float f2);
+        Array2D<float>& FilteredSpectrumReal, Array2D<float>& FilteredSpectrumImaginary,
+        float f1, float f2);
 
   /// @brief HIGHPASS FILTER.
   ///
@@ -423,9 +423,9 @@ public:
   /// @author David Milodowski
   /// @date 18/12/2012
   void highpass_filter(Array2D<float>& RawSpectrumReal, Array2D<float>& RawSpectrumImaginary,
-		       Array2D<float>& FilteredSpectrumReal, Array2D<float>& FilteredSpectrumImaginary,
-		       float f1, float f2);
-  	                     
+           Array2D<float>& FilteredSpectrumReal, Array2D<float>& FilteredSpectrumImaginary,
+           float f1, float f2);
+                         
   /// @brief HIGHPASS FILTER REMAINDER.
   ///
   /// @details Filter array to retaining frequencies below f2 (the remainder from the highpass filter).  The filter edge is a radial gaussian function with a SD of |f2-f1|/3.
@@ -438,8 +438,8 @@ public:
   /// @author David Milodowski
   /// @date 29/09/2014
   void highpass_filter_remainder(Array2D<float>& RawSpectrumReal, Array2D<float>& RawSpectrumImaginary,
-				 Array2D<float>& FilteredSpectrumReal, Array2D<float>& FilteredSpectrumImaginary,
-				 float f1, float f2);
+         Array2D<float>& FilteredSpectrumReal, Array2D<float>& FilteredSpectrumImaginary,
+         float f1, float f2);
 
   /// @brief WIENER FILTER.
   ///
@@ -454,7 +454,7 @@ public:
   /// @author David Milodowski
   /// @date 18/12/2012
   void wiener_filter(Array2D<float>& RawSpectrumReal, Array2D<float>& RawSpectrumImaginary,
-		     Array2D<float>& FilteredSpectrumReal, Array2D<float>& FilteredSpectrumImaginary);
+         Array2D<float>& FilteredSpectrumReal, Array2D<float>& FilteredSpectrumImaginary);
 
   //=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
   // MAIN FUNCTIONS USING SPECTRAL FILTERS
@@ -588,11 +588,11 @@ private:
   void create();
   void create(string filename, string extension);
   void create(int ncols, int nrows, float xmin, float ymin,
-	      float cellsize, float ndv, Array2D<float> data);
+        float cellsize, float ndv, Array2D<float> data);
   void create(int raster_order, float cellsize, float ndv);
   void create(int nrows, int ncols, float xmin, float ymin,
-	      float cellsize, float ndv, Array2D<float> data,
-	      map<string,string> temp_GRS);
+        float cellsize, float ndv, Array2D<float> data,
+        map<string,string> temp_GRS);
   void create(LSDRaster& An_LSDRaster);
 
 };

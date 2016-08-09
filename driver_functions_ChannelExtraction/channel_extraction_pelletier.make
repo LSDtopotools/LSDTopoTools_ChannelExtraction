@@ -4,20 +4,20 @@ CC=g++
 CFLAGS=-c -Wall -O3 -pg
 OFLAGS = -Wall -O3 -pg
 LDFLAGS= -Wall
-SOURCES=channel_extraction_pelletier.cpp \ 
+SOURCES=channel_extraction_pelletier.cpp \
          ../LSDIndexRaster.cpp \
          ../LSDRaster.cpp \
-         ../LSDFlowInfo.cpp \ 
+         ../LSDFlowInfo.cpp \
          ../LSDIndexChannel.cpp \
-         ../LSDStatsTools.cpp \ 
-         ../LSDRasterSpectral.cpp \ 
-         ../LSDJunctionNetwork.cpp \ 
-         ../LSDChannel.cpp \ 
-         ../LSDMostLikelyPartitionsFinder.cpp \ 
+         ../LSDStatsTools.cpp \
+         ../LSDRasterSpectral.cpp \
+         ../LSDJunctionNetwork.cpp \
+         ../LSDChannel.cpp \
+         ../LSDMostLikelyPartitionsFinder.cpp \
          ../LSDShapeTools.cpp
 LIBS   = -lm -lstdc++ -lfftw3
 OBJECTS=$(SOURCES:.cpp=.o)
-EXECUTABLE=channel_extraction_pelletier.out
+EXECUTABLE=channel_extraction_pelletier.exe
 
 all: $(SOURCES) $(EXECUTABLE)
 

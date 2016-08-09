@@ -17,7 +17,7 @@ SOURCES=channel_extraction_area_threshold.cpp \
     ../LSDShapeTools.cpp
 LIBS= -lm -lstdc++ -lfftw3
 OBJECTS=$(SOURCES:.cpp=.o)
-EXECUTABLE=channel_extraction_area_threshold.out
+EXECUTABLE=channel_extraction_area_threshold.exe
 
 all: $(SOURCES) $(EXECUTABLE)
 

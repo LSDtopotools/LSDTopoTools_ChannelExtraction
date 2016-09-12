@@ -1,0 +1,6 @@
+RasterFile /LSDTopoTools/Topographic_projects/Test_data/gabilan
+OutputRasterFile /LSDTopoTools/Topographic_projects/Test_data/gabilan_CN
+QQFile /LSDTopoTools/Topographic_projects/Test_data/gabilan_QQ
+window_radius_for_surface_fitting 6
+threshold_drainage_area 1000
+connected_components_threshold 100

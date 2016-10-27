@@ -22,7 +22,7 @@ int main (int nNumberofArgs,char *argv[])
 {
   // ADD ALL PATH RELATED STUFF HERE!
   //Test for correct input arguments
-  if (nNumberofArgs!=3)
+  if (nNumberofArgs!=4)
   {
     cout << "FATAL ERROR: wrong number inputs. The program needs the path name, the driver file name" << endl;
     exit(EXIT_SUCCESS);
@@ -30,8 +30,9 @@ int main (int nNumberofArgs,char *argv[])
 
   string path_name = argv[1];
   string f_name = argv[2];
+  string ext_name = argv[3];
 
-  cout << "The path is: " << path_name << " and the filename is: " << f_name << endl;
+  cout << "The path is: " << path_name << " and the filename is: " << f_name << " and extension is: " << ext_name << endl;
 
   string full_name = path_name+f_name;
 
@@ -39,6 +40,7 @@ int main (int nNumberofArgs,char *argv[])
 
   string raster_name;
   string data_path;
+
   string output_id;
   string flt_ext = "flt";
   string ENVI_ext = "bil";
@@ -48,33 +50,15 @@ int main (int nNumberofArgs,char *argv[])
 
   string temp;
 
-  file_info_in.open(full_name.c_str());
-  if( file_info_in.fail() )
-  {
-    cout << "\nFATAL ERROR: the header file \"" << full_name
-         << "\" doesn't exist" << endl;
-    exit(EXIT_FAILURE);
-  }
-  file_info_in >> temp >> data_path;
-  data_path = RemoveControlCharactersFromEndOfString(data_path);
-
-  file_info_in >> temp >> raster_name;
-  raster_name = RemoveControlCharactersFromEndOfString(raster_name);
-
-  file_info_in >> temp >> output_id;
-  output_id = RemoveControlCharactersFromEndOfString(output_id);
-
-  file_info_in.close();
-
   // print the spectral data to the data folder.
   output_id = data_path+output_id;
 
 
   // now check the raster format
-  string lower = raster_format;
-  for (unsigned int i=0; i<raster_format.length(); ++i)
+  string lower = ext_name;
+  for (unsigned int i=0; i<ext_name.length(); ++i)
   {
-    lower[i] = tolower(raster_format[i]);
+    lower[i] = tolower(ext_name[i]);
   }
 
   if (lower == "bil" || lower == "envi")
@@ -102,7 +86,7 @@ int main (int nNumberofArgs,char *argv[])
   }
 
   // Load in data
-  string DEM_f_name = data_path+raster_name;
+  string DEM_f_name = full_name;
   LSDRaster raw_raster(DEM_f_name, raster_ext);
 
   // convert to float by using the polyfit function

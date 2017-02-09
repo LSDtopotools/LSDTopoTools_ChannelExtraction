@@ -2,7 +2,7 @@
 // channel_extraction_perona_malik.cpp
 // A driver function for use with the Land Surace Dynamics Topo Toolbox
 // This program calculates channel heads using an Optimal wiener filter (used by Pelletier,
-// 2013) and a quantile-quantile curvature threshold similar to Geonet.  It then uses a 
+// 2013) and a quantile-quantile curvature threshold similar to Geonet.  It then uses a
 // connected components threshold to create a channel network from the curvature mask.
 //
 // References: Pelletier, J.D. (2013) A robust, two-parameter method for the extraction of
@@ -11,7 +11,7 @@
 //
 // Passalacqua, P., Do Trung, T., Foufoula-Georgiou, E., Sapiro, G., & Dietrich, W. E.
 // (2010). A geometric framework for channel network extraction from lidar: Nonlinear diffusion and
-// geodesic paths. Journal of Geophysical Research: Earth Surface (2003–2012), 115(F1).
+// geodesic paths. Journal of Geophysical Research: Earth Surface (2003ï¿½2012), 115(F1).
 //
 // He, L., Chao, Y., & Suzuki, K. (2008). A run-based two-scan labeling algorithm. Image Processing,
 // IEEE Transactions on, 17(5), 749-756.
@@ -108,11 +108,17 @@ int main (int nNumberofArgs,char *argv[])
   int connected_components_threshold;
   file_info_in >> temp >> Raster_name
                >> temp >> Output_name
-               >> temp >> q_q_filename_prefix 
+               >> temp >> q_q_filename_prefix
                >> temp >> window_radius
                >> temp >> area_threshold
 	       >> temp >> connected_components_threshold;
   file_info_in.close();
+
+  cout << "The parameters are: " << endl
+       << "\tRaster name: " << Raster_name << endl
+       << "\tWindow radius: " << window_radius << endl
+       << "\tArea threshold: " << area_threshold << endl
+       << "\tCC threshold: " << connected_components_threshold << endl;
   // Now create the raster selection vector based on user's selection
   // Elevation
   LSDRasterSpectral raster(Raster_name, DEM_extension);
@@ -132,38 +138,50 @@ int main (int nNumberofArgs,char *argv[])
   //connected_components_filtered.write_raster(Output_name+"_cc", DEM_extension);
   //skeleton_raster.write_raster(Output_name+"_skeleton",DEM_extension);
   //Ends.write_raster(Output_name+"_end_points",DEM_extension);
-  
+
   //Now we can process the end points to get only the channel heads - SWDG
-  
+
   cout << "Starting channel head processing" << endl;
-  
+
   //First we need to load the elevation data, fill it and generate a FlowInfo object
   LSDRaster DEM(Raster_name, DEM_extension);
-  float MinSlope = 0.0001;
+  float MinSlope = 0.0005;
   LSDRaster FilledDEM = DEM.fill(MinSlope);
   vector<string> BoundaryConditions(4, "No Flux");
   LSDFlowInfo FlowInfo(BoundaryConditions,FilledDEM);
-  
+
+  // write the filled DEM to a file
+  string fill_name = "_fill";
+  FilledDEM.write_raster((Output_name+fill_name), DEM_extension);
+
+  // make the hillshade (this is faster than doing it in arc)
+	string HS_name = "_HS";
+	LSDRaster HS = FilledDEM.hillshade(45, 315, 1);
+	HS.write_raster((Output_name+HS_name),DEM_extension);
+
   //this processes the end points to only keep the upper extent of the channel network
   cout << "getting channel heads" << endl;
   vector<int> tmpsources = FlowInfo.ProcessEndPointsToChannelHeads(Ends);
-      
+
   // we need a temp junction network to search for single pixel channels
   LSDJunctionNetwork tmpJunctionNetwork(tmpsources, FlowInfo);
   LSDIndexRaster tmpStreamNetwork = tmpJunctionNetwork.StreamOrderArray_to_LSDIndexRaster();
-  
+
   cout << "removing single px channels" << endl;
   vector<int> FinalSources = FlowInfo.RemoveSinglePxChannels(tmpStreamNetwork, tmpsources);
-  
+
   //Now we have the final channel heads, so we can generate a channel network from them
   LSDJunctionNetwork JunctionNetwork(FinalSources, FlowInfo);
   LSDIndexRaster StreamNetwork = JunctionNetwork.StreamOrderArray_to_LSDIndexRaster();
-  
-  //Finally we write the channel network and channel heads to files so they can be used in other drivers. 
+	LSDIndexRaster JIArray = JunctionNetwork.JunctionIndexArray_to_LSDIndexRaster();
+	string JN_name = "_JI";
+	JIArray.write_raster(Output_name+JN_name, DEM_extension);
+
+  //Finally we write the channel network and channel heads to files so they can be used in other drivers.
   LSDIndexRaster Heads = FlowInfo.write_NodeIndexVector_to_LSDIndexRaster(FinalSources);
-  Heads.write_raster((Output_name+"_CH_wiener"),DEM_extension);
-  StreamNetwork.write_raster((Output_name+"_SO_wiener"),DEM_extension);
+  Heads.write_raster((Output_name+"_CH_wiener_old"),DEM_extension);
+  StreamNetwork.write_raster((Output_name+"_SO_wiener_old"),DEM_extension);
   FlowInfo.print_vector_of_nodeindices_to_csv_file(FinalSources,(Output_name+"_CH_wiener"));
-  
+
   cout << "DONE" << endl;
 }

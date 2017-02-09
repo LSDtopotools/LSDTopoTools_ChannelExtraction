@@ -108,8 +108,19 @@ int main (int nNumberofArgs,char *argv[])
 	             >> temp >> NJunctions;
   file_info_in.close();
   // Now create the raster selection vector based on user's selection
+	
+	cout << "Running the DrEICH channel extraction, parameters are: \n"
+			 << "Raster name: " << Raster_name << "\n"
+			 << "Window radius: " << window_radius << "\n"
+			 << "Area threshold: " << area_threshold << "\n"
+			 << "Connected components threshold: " << connected_components_threshold << "\n"
+		   << "A_0: " << A_0 << "\n"
+		 	 << "m/n: " << m_over_n << "\n"
+			 << "Number of junctions: " << NJunctions << endl;
+	
   // Elevation
   LSDRasterSpectral raster(Raster_name, DEM_extension);
+	cout << "Loading the DEM" << endl;
   LSDIndexRaster connected_components = raster.IsolateChannelsWienerQQ(area_threshold, window_radius, Output_name+".txt");
   cout << "filter by connected components" << endl;
   //LSDIndexRaster output_raster(Output_name,DEM_extension);
@@ -133,7 +144,7 @@ int main (int nNumberofArgs,char *argv[])
   
   //First we need to load the elevation data, fill it and generate a FlowInfo object
   LSDRaster DEM(Raster_name, DEM_extension);
-  float MinSlope = 0.0001;
+  float MinSlope = 0.0005;
   LSDRaster FilledDEM = DEM.fill(MinSlope);
   string fill_name = "_fill";
   FilledDEM.write_raster((Output_name+fill_name), DEM_extension);
@@ -180,7 +191,7 @@ int main (int nNumberofArgs,char *argv[])
 										                    							                    
                                                  
   //write channel heads to a raster
-  string CH_name = "_CH_DrEICH";
+  string CH_name = "_CH_DrEICH_old";
   Channel_heads_raster_temp.write_raster((Output_name+CH_name),DEM_extension);
   
   //write channel heads to csv file
@@ -190,7 +201,7 @@ int main (int nNumberofArgs,char *argv[])
   LSDJunctionNetwork NewChanNetwork(ChannelHeadNodes_temp, FlowInfo);
   //int n_junctions = NewChanNetwork.get_Number_of_Junctions();
   LSDIndexRaster SOArrayNew = NewChanNetwork.StreamOrderArray_to_LSDIndexRaster();
-  string SO_name_new = "_SO_DrEICH";
+  string SO_name_new = "_SO_DrEICH_old";
 
   SOArrayNew.write_raster((Output_name+SO_name_new),DEM_extension);                                               
 }

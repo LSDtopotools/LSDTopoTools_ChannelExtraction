@@ -141,7 +141,7 @@ int main (int nNumberofArgs,char *argv[])
 	
 	// Get the valleys using the contour curvature
 	
-  int surface_fitting_window_radius = 7;
+  int surface_fitting_window_radius = 6;
   int surface_fitting_window_radius_LW = 25;
   vector<LSDRaster> surface_fitting, surface_fitting_LW;
   LSDRaster tan_curvature;
@@ -163,7 +163,7 @@ int main (int nNumberofArgs,char *argv[])
     }
   }
 
-	string CH_name = "_CH_Pelletier";
+	string CH_name = "_CH_Pelletier_old";
 	Array2D<float> topography = filled_topo_test.get_RasterData();
 	Array2D<float> curvature = tan_curvature.get_RasterData();
 	Array2D<float> curvature_LW = tan_curvature_LW.get_RasterData();
@@ -192,7 +192,7 @@ int main (int nNumberofArgs,char *argv[])
 	//create a channel network based on these channel heads
 	LSDJunctionNetwork NewChanNetwork(ChannelHeadNodesFilt, FlowInfo);
   LSDIndexRaster SOArrayNew = NewChanNetwork.StreamOrderArray_to_LSDIndexRaster();
-	string SO_name_new = "_SO_Pelletier";
+	string SO_name_new = "_SO_Pelletier_old";
 	
 	SOArrayNew.write_raster((path_name+DEM_name+SO_name_new),DEM_flt_extension);	
                               

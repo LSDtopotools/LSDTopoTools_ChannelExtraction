@@ -147,6 +147,12 @@ int main (int nNumberofArgs,char *argv[])
   bool_default_map["print_sources_to_csv"] = true;
   bool_default_map["print_channels_to_csv"] = true;
   
+  bool_default_map["print_dinf_drainage_area_raster"] = false;
+  bool_default_map["print_d8_drainage_area_raster"] = false;
+  bool_default_map["print_QuinnMD_drainage_area_raster"] = false;
+  bool_default_map["print_FreemanMD_drainage_area_raster"] = false;
+  bool_default_map["print_MD_drainage_area_raster"] = false;
+  
 
   // set default string method
   string_default_map["CHeads_file"] = "NULL";
@@ -210,7 +216,51 @@ int main (int nNumberofArgs,char *argv[])
   
   // get the flow info object
   LSDFlowInfo FlowInfo(boundary_conditions,filled_topography);
+
+  //=================================================================
+  // Now, if you want, calculate drainage areas
+  //=================================================================
+  if (this_bool_map["print_dinf_drainage_area_raster"])
+  {
+    string DA_raster_name = OUT_DIR+OUT_ID+"_dinf_area";
+    LSDRaster DA1 = filled_topography.D_inf_ConvertFlowToArea();
+    
+    // get some randon points
+    //cout << "dinf:" << endl <<  DA1.get_data_element(452,364) << " " << DA1.get_data_element(1452,762) << endl;
+    DA1.write_raster(DA_raster_name,raster_ext);
+  }
+
+  if (this_bool_map["print_d8_drainage_area_raster"])
+  {
+    string DA_raster_name = OUT_DIR+OUT_ID+"_d8_area";
+    LSDRaster DA2 = FlowInfo.write_DrainageArea_to_LSDRaster();
+    //cout << "d8:" << endl <<  DA2.get_data_element(452,364) << " " << DA2.get_data_element(1452,762) << endl;
+    DA2.write_raster(DA_raster_name,raster_ext);
+  }
   
+  if (this_bool_map["print_QuinnMD_drainage_area_raster"])
+  {
+    string DA_raster_name = OUT_DIR+OUT_ID+"_QMD_area";
+    LSDRaster DA3 = filled_topography.QuinnMDFlow();
+    //cout << "Qiunn:" << endl <<  DA3.get_data_element(452,364) << " " << DA3.get_data_element(1452,762) << endl;
+    DA3.write_raster(DA_raster_name,raster_ext);
+  }
+  
+  if (this_bool_map["print_FreemanMD_drainage_area_raster"])
+  {
+    string DA_raster_name = OUT_DIR+OUT_ID+"_FMD_area";
+    LSDRaster DA4 = filled_topography.FreemanMDFlow();
+    //cout << "Freeman:" << endl <<  DA4.get_data_element(452,364) << " " << DA4.get_data_element(1452,762) << endl;
+    DA4.write_raster(DA_raster_name,raster_ext);
+  }
+  
+  if (this_bool_map["print_MD_drainage_area_raster"])
+  {
+    string DA_raster_name = OUT_DIR+OUT_ID+"_MD_area";
+    LSDRaster DA5 = filled_topography.M2DFlow();
+    DA5.write_raster(DA_raster_name,raster_ext);
+  }
+
   //===============================================================
   // AREA THRESHOLD
   //===============================================================
@@ -591,7 +641,7 @@ int main (int nNumberofArgs,char *argv[])
     topo_test_wiener.write_raster(wiener_name,raster_ext);
   }
 
-
+  // Prints the curvature raster if you want it
   if (this_bool_map["print_curvature_raster"])
   {
     vector<int> raster_selection(8, 0);
@@ -615,7 +665,9 @@ int main (int nNumberofArgs,char *argv[])
   }
   
   
+
   
+
   // Done, check how long it took
   clock_t end = clock();
   float elapsed_secs = float(end - begin) / CLOCKS_PER_SEC;

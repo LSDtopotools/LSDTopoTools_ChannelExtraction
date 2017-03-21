@@ -402,6 +402,26 @@ float get_mean(vector<float>& y_data)
   return mean;
 }
 //=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
+//=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
+// gets the mean from a population of y_data and ignores no data values
+//=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
+float get_mean_ignore_ndv(vector<float>& y_data, float ndv)
+{
+  int n_data_points=0;
+  float total = 0;
+  float mean;
+  for (int i = 0; i< int(y_data.size()); i++)
+  {
+    if (y_data[i] != ndv)
+    {
+      total+=y_data[i];
+      n_data_points++;
+    }
+  }
+  mean = total/float(n_data_points);
+  return mean;
+}
+//=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
 
 //=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
 // gets the mean from a population of y_data
@@ -552,6 +572,43 @@ float get_range_from_vector(vector<float>& y_data, float ndv)
   return range;
 }
 
+//=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
+// gets the minimum of a population of data
+//=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
+float Get_Minimum(vector<float>& y_data, float ndv)
+{
+  float min = 10000;
+  for (int i =0; i < int(y_data.size()); i++)
+  {
+    if (y_data[i] != ndv)
+    {
+      if (y_data[i] < min)
+      {
+        min = y_data[i];
+      }
+    }
+  }
+  return min;
+}
+
+//=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
+// gets the maximum of a population of data
+//=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
+float Get_Maximum(vector<float>& y_data, float ndv)
+{
+  float max = 0;
+  for (int i =0; i < int(y_data.size()); i++)
+  {
+    if (y_data[i] != ndv)
+    {
+      if (y_data[i] > max)
+      {
+        max = y_data[i];
+      }
+    }
+  }
+  return max;
+}
 //=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
 // gets the standard deviation from a population of data
 //=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
@@ -1396,20 +1453,22 @@ double interp2D_bilinear(vector<double>& x_locs, vector<double>& y_locs, Array2D
     // reverse to positive order if reversed
     if( x_locs[0] > x_locs[1])
     {
+      cout << "Reversing x" << endl;
       is_x_reversed = true;
       reverse(x_locs.begin(),x_locs.end());
     }
     if( y_locs[0] > y_locs[1])
     {
+      cout << "Reversing y" << endl;
       is_y_reversed = true;
       reverse(y_locs.begin(),y_locs.end());
     }
 
-
     // first find the index of the x data
     if(x_interp < x_locs[0])
     {
-      cout << "x is too small for 2D interpolation, defaulting to ndv";
+      cout << "x is too small for 2D interpolation, defaulting to ndv" << endl;
+      cout << "x_locs[0]" << x_locs[0] << " x interp: " << x_interp << endl;
       x_index = ndv_index;
     }
     else if (x_interp > x_locs[n_xlocs-1])
@@ -1433,7 +1492,8 @@ double interp2D_bilinear(vector<double>& x_locs, vector<double>& y_locs, Array2D
     // now get the index of the y data
     if(y_interp < y_locs[0])
     {
-      cout << "y is too small for 2D interpolation, defaulting to ndv";
+      cout << "y is too small for 2D interpolation, defaulting to ndv" << endl;
+      cout << "y_locs[0]" << y_locs[0] << " y interp: " << y_interp << endl;
       y_index = ndv_index;
     }
     else if (y_interp > y_locs[n_ylocs-1])

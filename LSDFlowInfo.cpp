@@ -821,6 +821,22 @@ void LSDFlowInfo::retrieve_current_row_and_col(int current_node,int& curr_row,
 //=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
 //=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
 // algorithms for searching the vectors
+// This gets the X and Y coordinates of the current node
+//
+// BG 20/02/2017
+//
+//=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
+void LSDFlowInfo::get_x_and_y_from_current_node(int current_node, float& current_X, float& current_Y)
+{
+  int cr,cc;
+  retrieve_current_row_and_col(current_node, cr,cc);
+  get_x_and_y_locations(cr, cc, current_X, current_Y);
+}
+//=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
+
+//=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
+//=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
+// algorithms for searching the vectors
 // This gets the row and column of the current node
 //
 // SMM 01/06/2012
@@ -2008,6 +2024,7 @@ LSDRaster LSDFlowInfo::write_DrainageArea_to_LSDRaster()
     {
       row = RowIndex[node];
       col = ColIndex[node];
+      //cout << NContributingNodes[node] << endl;
       this_DA = float(NContributingNodes[node])*DataResolution*DataResolution;
       DrainageArea_local[row][col] = this_DA;
     }
@@ -2326,7 +2343,7 @@ LSDRaster LSDFlowInfo::upslope_variable_accumulator(LSDRaster& accum_raster)
 //=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
 //=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
 //
-// This function tests whether one node is upstream of another node
+// This function tests whether the test is upstream of the current node
 //
 // FC 01/06/2012
 //
@@ -2989,7 +3006,7 @@ int LSDFlowInfo::get_node_index_of_coordinate_point(float X_coordinate, float Y_
 {
   // Shift origin to that of dataset
   float X_coordinate_shifted_origin = X_coordinate - XMinimum - DataResolution*0.5;
-  float Y_coordinate_shifted_origin = Y_coordinate - YMinimum - DataResolution*0.5;;
+  float Y_coordinate_shifted_origin = Y_coordinate - YMinimum - DataResolution*0.5;
 
   // Get row and column of point
   int col_point = int(X_coordinate_shifted_origin/DataResolution);
@@ -3006,6 +3023,87 @@ int LSDFlowInfo::get_node_index_of_coordinate_point(float X_coordinate, float Y_
     CurrentNode = NoDataValue;
   }
   return CurrentNode;
+}
+//=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
+//=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
+//=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
+// Get vector of nodeindices from a csv file with X and Y coordinates
+// The csv file must have the format: ID, X, Y
+//
+// FJC 14/02/17
+//
+//=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
+//=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
+void LSDFlowInfo::get_nodeindices_from_csv(string csv_filename, vector<int>& NIs, vector<float>& X_coords, vector<float>& Y_coords)
+{
+  ifstream csv_input(csv_filename.c_str());
+  vector<int> temp_NIs;
+  vector<float> temp_X_Coords;
+  vector<float> temp_Y_Coords;
+  //initiate the string to hold the file
+  string line_from_file;
+  vector<string> empty_string_vec;
+  vector<string> this_string_vec;
+  string temp_string;
+
+  // discard the first line
+  getline(csv_input, line_from_file);
+
+  // now loop through the rest of the lines
+  while (getline(csv_input,line_from_file))
+  {
+    // reset the string vec
+    this_string_vec = empty_string_vec;
+
+    // create a stringstream
+    stringstream ss(line_from_file);
+
+    while (ss.good())
+    {
+      string substr;
+      getline(ss,substr,',');
+
+      // remove the spaces
+      substr.erase(remove_if(substr.begin(), substr.end(), ::isspace), substr.end());
+
+      // remove control characters
+      substr.erase(remove_if(substr.begin(), substr.end(), ::iscntrl), substr.end());
+
+      // add the string to the string vec
+      this_string_vec.push_back( substr );
+    }
+
+    // for some reason our compiler can't deal with stof so converting to doubles
+    double X_coordinate = atof(this_string_vec[1].c_str());
+    double Y_coordinate = atof(this_string_vec[2].c_str());
+
+    // Shift origin to that of dataset
+    float X_coordinate_shifted_origin = X_coordinate - XMinimum - DataResolution*0.5;
+    float Y_coordinate_shifted_origin = Y_coordinate - YMinimum - DataResolution*0.5;
+
+    // Get row and column of point
+    int col_point = int(X_coordinate_shifted_origin/DataResolution);
+    int row_point = (NRows-1) - int(round(Y_coordinate_shifted_origin/DataResolution));
+
+    // Get node of point
+    int CurrentNode = NoDataValue;
+    if(col_point>=0 && col_point<NCols && row_point>=0 && row_point<NRows)
+    {
+      CurrentNode = retrieve_node_from_row_and_column(row_point, col_point);
+    }
+    if (CurrentNode != NoDataValue)
+    {
+      temp_X_Coords.push_back(float(X_coordinate));
+      temp_Y_Coords.push_back(float(Y_coordinate));
+      temp_NIs.push_back(CurrentNode);
+    }
+
+  }
+
+  //copy to output vectors
+  NIs = temp_NIs;
+  X_coords = temp_X_Coords;
+  Y_coords = temp_Y_Coords;
 }
 //=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
 
@@ -7321,41 +7419,71 @@ float LSDFlowInfo::get_flow_length_between_nodes(int UpstreamNode, int Downstrea
 	float length = 0;
 	float root_2 = 1.4142135623;
 
-	int upstream_test = is_node_upstream(DownstreamNode, UpstreamNode);
-	if (upstream_test != 1)
-	{
-		cout << "FATAL ERROR: The selected node is not upstream" << endl;
-	}
-
-	bool ReachedChannel = false;
-	int CurrentNode = UpstreamNode;
-	while (ReachedChannel == false)
-	{
-		//get receiver information
-		int ReceiverNode, ReceiverRow, ReceiverCol;
-		retrieve_receiver_information(CurrentNode, ReceiverNode, ReceiverRow, ReceiverCol);
-		//if node is at baselevel then exit
-		if (CurrentNode == ReceiverNode)
-		{
-			ReachedChannel = true;
-			//cout << "You reached a baselevel node, returning baselevel" << endl;
-		}
-		//if receiver is a channel > threshold then get the stream order
-		if (ReceiverNode == DownstreamNode)
-		{
-			ReachedChannel = true;
-		}
-		else
-		{
-			//move downstream
-			CurrentNode = ReceiverNode;
-			// update length
-			if (retrieve_flow_length_code_of_node(ReceiverNode) == 1){ length += DataResolution; }
-      else if (retrieve_flow_length_code_of_node(ReceiverNode) == 2){ length += (DataResolution * root_2); }
-		}
-	}
-
+  if (UpstreamNode == DownstreamNode)
+  {
+    cout << "You've picked the same node! Flow Length is 0." << endl;
+  }
+  else
+  {
+  	int upstream_test = is_node_upstream(DownstreamNode, UpstreamNode);
+  	if (upstream_test != 1)
+  	{
+  		cout << "FlowInfo 7430: FATAL ERROR: The selected node is not upstream" << endl;
+      length = float(NoDataValue);
+  	}
+    else
+    {
+    	bool ReachedChannel = false;
+    	int CurrentNode = UpstreamNode;
+    	while (ReachedChannel == false)
+    	{
+    		//get receiver information
+    		int ReceiverNode, ReceiverRow, ReceiverCol;
+    		retrieve_receiver_information(CurrentNode, ReceiverNode, ReceiverRow, ReceiverCol);
+    		//if node is at baselevel then exit
+    		if (CurrentNode == ReceiverNode)
+    		{
+    			ReachedChannel = true;
+    			//cout << "You reached a baselevel node, returning baselevel" << endl;
+    		}
+    		//if receiver is a channel > threshold then get the stream order
+    		if (ReceiverNode == DownstreamNode)
+    		{
+    			ReachedChannel = true;
+    		}
+    		else
+    		{
+    			//move downstream
+    			CurrentNode = ReceiverNode;
+    			// update length
+    			if (retrieve_flow_length_code_of_node(ReceiverNode) == 1){ length += DataResolution; }
+          else if (retrieve_flow_length_code_of_node(ReceiverNode) == 2){ length += (DataResolution * root_2); }
+    		}
+    	}
+    }
+  }
 	return length;
+}
+
+//=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
+//=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
+// This function gets the Euclidian distance between two nodes in metres
+// FJC 17/02/17
+//=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
+float LSDFlowInfo::get_Euclidian_distance(int node_A, int node_B)
+{
+  int row_A, row_B, col_A, col_B;
+  // get the row and cols of the nodes
+  retrieve_current_row_and_col(node_A, row_A, col_A);
+  retrieve_current_row_and_col(node_B, row_B, col_B);
+
+  float row_length = (row_B - row_A)*DataResolution;
+  float col_length = (col_B - col_A)*DataResolution;
+
+  //find the distance between these nodes
+  float dist = sqrt(row_length*row_length + col_length*col_length);
+
+  return dist;
 }
 
 //=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-

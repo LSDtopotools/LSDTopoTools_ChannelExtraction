@@ -199,6 +199,16 @@ class LSDFlowInfo
   void retrieve_current_row_and_col(int current_node,int& curr_row,
                                              int& curr_col);
 
+  ///@brief Get the X and Y coordinates of a given node.
+  ///@param current_node Integer index of a given node.
+  ///@param current_X Empty integer to be assigned the X coordinate of the given
+  ///node.
+  ///@param current_Y Empty integer to be assigned the Y coordinate of the given
+  ///node.
+  /// @author BG
+  /// @date 20/02/2017
+  void get_x_and_y_from_current_node(int current_node,float& current_X, float& current_Y);
+
   ///@brief This function takes a vector of node indices and prints a csv
   ///file that can be read by arcmap
   ///@param nodeindex vec is a vector of nodeindices (which are ints)
@@ -699,6 +709,12 @@ class LSDFlowInfo
   /// @date 11/02/14
   int get_node_index_of_coordinate_point(float X_coordinate, float Y_coordinate);
 
+  /// @brief Get vector of nodeindices from csv file
+  /// @param csv_filename input csv file
+  /// @return vector<int> with nodeindices. Ignores nodatavalues
+  /// @author FJC
+  /// @date 14/02/17
+void get_nodeindices_from_csv(string csv_filename, vector<int>& NIs, vector<float>& X_coords, vector<float>& Y_coords);
 
   /// @brief Function to return the closest value of a raster to a specified node index
   /// @param NodeIndex of interest
@@ -1007,6 +1023,14 @@ class LSDFlowInfo
   /// @author FJC
   /// @date 29/09/2016
 	float get_flow_length_between_nodes(int UpstreamNode, int DownstreamNode);
+
+  /// @brief This function gets the Euclidian distance between two nodes
+  /// @param node_A the first node
+  /// @param node_B the second node
+  /// @return distance between the two nodes
+  /// @author FJC
+  /// @date 17/02/17
+  float get_Euclidian_distance(int node_A, int node_B);
 
   /// @brief Method to snap a point, given as raster coordinates, to a cell in
   /// a raster of hilltops.

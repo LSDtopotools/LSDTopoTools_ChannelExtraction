@@ -93,6 +93,16 @@ float get_standard_error(vector<float>& y_data, float standard_deviation);
 vector<float> get_common_statistics(vector<float>& y_data);
 float get_percentile(vector<float>& data, float percentile);
 
+// orthogonal regression
+// 01/04/2017 SMM No foolin
+// This comes from davegiles.blogspot.co.uk/2014/11/orthogonal-regression-first-steps.html
+// NOTE: THis is more generally called Total Least Squares
+//  There is a solution using matrices that is probably compuationally faster
+//  Might want to implement that in the future if this is slow
+//  Note R^2 from simple linear regression
+//=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
+vector<float> orthogonal_linear_regression( vector<float>& x_data, vector<float>& y_data, float& intercept, float& gradient, float& R_squared);
+
 // this function gets the difference between nearest neighbours in a vector of y data
 // FJC 10/11/15
 vector<float> difference(vector<float>& y_data);
@@ -434,6 +444,25 @@ double rad(double degree);
 // conversion from radians to degrees
 float deg(float radians);
 double deg(double radians);
+
+// Get the angle between two vectors
+float angle_between_vectors(float x1, float y1, float x2, float y2);
+
+// Get the angle between two vectors in radians
+// We need to calculate the (x1,y1) and (x2,y2) coordinates by moving
+// the vectors to intercept (0,0)
+// the bool vectors_point_downstream is true if the vector's first element is the 
+// upstream node in a channel and false if the first node is downstream. 
+float angle_between_two_vector_datasets(vector<float>& x1_data, vector<float>& y1_data,
+                                        vector<float>& x2_data, vector<float>& y2_data,
+                                        bool vectors_point_downstream);
+
+// This function takes x and y data as vectors and returns a 2 element vector
+// where the 0 element is the x1 component of a directional vector 
+// and the 1 element is the y1 component of a directional vector
+// vector vector vector, Victor. 
+vector<float> get_directional_vector_coords_from_dataset(vector<float> x1_data, vector<float>& y_data, 
+                      bool vectors_point_downstream);
 
 // Get the data for a boxplot from an unsorted vector of floats, which does not
 // contain any NDV values.

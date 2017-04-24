@@ -245,7 +245,7 @@ void LSDParameterParser::LSDPP_parse_file_into_parameter_map(string FullName)
 // This uses the parameter map to get file input and output
 void LSDParameterParser::parse_file_IO()
 {
-
+  bool found_cheads = false;
   if(parameter_map.find("dem read extension") != parameter_map.end())
   {
     dem_read_extension = parameter_map["dem read extension"];
@@ -285,12 +285,17 @@ void LSDParameterParser::parse_file_IO()
     read_fname = RemoveControlCharactersFromEndOfString(read_fname);
     //cout << "Got the write name, it is: "  << write_fname << endl;
   }
-  if(parameter_map.find("channel heads fname") != parameter_map.end())
+  if(parameter_map.find("CHeads_file") != parameter_map.end())
   {
-    CHeads_file = parameter_map["channel heads fname"];
+    CHeads_file = parameter_map["CHeads_file"];
     // get rid of any control characters from the end (if param file was made in DOS)
     CHeads_file = RemoveControlCharactersFromEndOfString(CHeads_file);
     //cout << "Got the channel heads name, it is: " << CHeads_file << endl;
+    if(found_cheads)
+    {
+      cout << "Warning, channel head file is being overwritten--you have it twice in parameter file." << endl;
+    }
+    found_cheads = true;
   }
   else
   {

@@ -16,6 +16,9 @@ SOURCES=channel_extraction_tool.cpp \
          ../LSDRasterInfo.cpp \
          ../LSDParameterParser.cpp \
          ../LSDSpatialCSVReader.cpp \
+         ../LSDBasin.cpp \
+         ../LSDCRNParameters.cpp \
+         ../LSDCosmoData.cpp \
          ../LSDMostLikelyPartitionsFinder.cpp \
          ../LSDShapeTools.cpp
 LIBS   = -lm -lstdc++ -lfftw3

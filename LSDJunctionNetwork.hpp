@@ -244,6 +244,35 @@ class LSDJunctionNetwork
   /// @date 21/04/2017
   map<int, vector<float> > calculate_junction_angles(vector<int> JunctionList, LSDFlowInfo& FlowInfo);
 
+  /// @brief This function gets the mean and standard error of every junction angle
+  ///   upslope of a given junction
+  /// @param target_junction The target junction
+  /// @param FlowInfo an LSDFlowInfo object
+  /// @return A vector of that has the mean and the standard error of the upslope junction angles
+  /// @author SMM
+  /// @date 23/04/2017
+  vector<float> calculate_junction_angle_statistics_upstream_of_junction(int target_junction, LSDFlowInfo& FlowInfo);
+
+  /// @brief This takes the junction angle statistics for all basins of a given order
+  /// @param FlowInfo the LSDFlowInfo object
+  /// @param BasinOrder the basin order of interest
+  /// @param junction_list a vector of ints holding the junctions of interest
+  ///  is replaced in the function
+  /// @param junction_angle_averages Average junction angles
+  ///  is replaced in the function
+  /// @param junction_angle_stder a vector junction angle standard errors
+  ///  is replaced in the function
+  /// @param N_junctions a vector of ints holding the numer of junctions in each larger basin
+  ///  is replaced in the function
+  /// @author SMM
+  /// @date 24/04/2017
+  void calculate_junction_angle_statistics_for_order(LSDFlowInfo& FlowInfo, int BasinOrder, 
+                             vector<int>& junction_list,
+                             vector<float>& junction_angle_averages,
+                             vector<float>& junction_angle_stderr,
+                             vector<int>& N_junctions);
+
+
   /// @brief This prints the junction angles to a csv file
   /// @param JunctionList The list of junctions to analyze. If this is an empty vector, 
   ///  the code analyses all junctions in the DEM
@@ -681,6 +710,15 @@ class LSDJunctionNetwork
   /// @author SWDG
   /// @date 24/10/2013
   vector<int> ExtractBasinJunctionOrder(int BasinOrder, LSDFlowInfo& FlowInfo);
+
+  /// @brief This function extracts the juctions of all non-beheaded drainage basins of a given order, n.
+  ///  Like the previous version but in this case includes basins at the edge (abutting nodata)
+  /// @param BasinOrder Integer basin order to extract.
+  /// @param FlowInfo LSDFlowInfo object.
+  /// @return Vector of junction indexes.
+  /// @author SMM
+  /// @date 29/04/2017
+  vector<int> ExtractBasinJunctionOrderKeepEdgeBasins(int BasinOrder, LSDFlowInfo& FlowInfo);
 
   /// @brief Get farthest upslope hilltops.
   ///
@@ -1501,6 +1539,15 @@ void get_info_nearest_channel_to_node_main_stem(int& StartingNode, LSDFlowInfo& 
                                 LSDRaster& DistanceFromOutlet,
                                 vector<int>& source_nodes, vector<int>& outlet_nodes,
                                 int n_nodes_to_visit);
+
+/// @detail This function gets all the pixels along a line defined by a series of points and finds the pixels greater than a specified stream order.
+/// @param Points PointData object with the points
+/// @param ElevationRaster raster of elevations
+/// @param threshold_SO threshold stream order
+/// @param FlowInfo LSDFlowInfo object
+/// @author FJC
+/// @date 17/04/17
+vector<int> get_channel_pixels_along_line(vector<int> line_rows, vector<int> line_cols, int threshold_SO, LSDFlowInfo& FlowInfo);
 
   protected:
 

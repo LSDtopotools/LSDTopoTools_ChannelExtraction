@@ -209,6 +209,18 @@ class LSDFlowInfo
   /// @date 20/02/2017
   void get_x_and_y_from_current_node(int current_node,float& current_X, float& current_Y);
 
+
+  ///@brief Get the lat and longitude coordinates of a given node.
+  ///@param current_node Integer index of a given node.
+  ///@param current_lat latitude. Will be replaced by function
+  ///@param current_long longitude. Will be replaced by function
+  ///@param Converter A coordinate converter object
+  /// @author SMM
+  /// @date 26/04/2017
+  void get_lat_and_long_from_current_node(int current_node, double& current_lat, double& current_long, LSDCoordinateConverterLLandUTM Converter);
+
+
+
   ///@brief This function takes a vector of node indices and prints a csv
   ///file that can be read by arcmap
   ///@param nodeindex vec is a vector of nodeindices (which are ints)
@@ -1012,6 +1024,18 @@ void get_nodeindices_from_csv(string csv_filename, vector<int>& NIs, vector<floa
   /// @date 31/10/14
   LSDIndexRaster find_cells_influenced_by_nodata(LSDIndexRaster& Bordered_mask,
                                  LSDRaster& Topography);
+
+  /// @brief This function gets nodes that are possibly on basin edge by
+  ///  removing those that do not border NoData. Intended to be passed
+  ///  to function for finding concave hull of basin
+  /// @param outlet node The node of the outlet
+  /// @param Topography this is the LSDRaster containing topographic data
+  /// @return A vector with the node indices of nodes that are adjacent to 
+  ///  nodata within the basin
+  /// @author SMM
+  /// @date 25/04/2017
+  vector<int> basin_edge_extractor(int outlet_node, LSDRaster& Topography);
+
 
   /// @brief This function returns all the values from a raster for a corresponding
   /// input vector of node indices.

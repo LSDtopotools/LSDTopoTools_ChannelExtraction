@@ -1104,14 +1104,14 @@ int LSDJunctionNetwork::get_number_of_streams(LSDFlowInfo& FlowInfo, int stream_
 // This gets the junction angles
 // returns a map of float vectors. The float vector actually contains a float
 // and 3 ints converted to float: the angle and the stream order of the junction
-// and its 2 donors. 
+// and its 2 donors.
 //=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
 map<int, vector<float> > LSDJunctionNetwork::calculate_junction_angles(vector<int> JunctionList, LSDFlowInfo& FlowInfo)
 {
   map<int, vector<float> > map_of_junction_angles;
   vector<float> temp_junctioninfo;
   vector<float> four_element(4,0);
-  
+
   int NJuncs = int(JunctionList.size());
   if (NJuncs == 0)
   {
@@ -1124,28 +1124,28 @@ map<int, vector<float> > LSDJunctionNetwork::calculate_junction_angles(vector<in
     }
     JunctionList = JL;
   }
-  
+
   // now go through each junction getting the angles
   //vector<float> JunctionAngles;
   vector<int> donors;
   float this_angle;
   bool is_baselevel;
-  bool channel_points_downstream = true;  // this is needed to get the correct 
+  bool channel_points_downstream = true;  // this is needed to get the correct
                                           // orientation of the channels
   int end_node, start_node1, start_node2;
   int junction_order, donor1_order, donor2_order;
-  
+
   // vectors for holding the channel locations
   vector<float> x1, x2, y1, y2;
   int this_junc;
-  
+
   // loop through junctions
   for(int junc = 0; junc < NJuncs; junc++ )
   {
 
     this_junc = JunctionList[junc];
     //cout << endl << "==================" << endl << "Junction is: " << this_junc << endl;
-    
+
     // check to see if the junction exists
     if (this_junc >= NJunctions)
     {
@@ -1153,11 +1153,11 @@ map<int, vector<float> > LSDJunctionNetwork::calculate_junction_angles(vector<in
       cout << "You have called a junction that doesn't exist." << endl;
       exit(EXIT_FAILURE);
     }
-    
+
     // check if it is a baselevel node
     int ReceiverJN = get_Receiver_of_Junction(this_junc);
     is_baselevel = (this_junc == ReceiverJN) ? true : false;
-    
+
     // if not a baselevel see if it has donors
     if (is_baselevel)
     {
@@ -1168,7 +1168,7 @@ map<int, vector<float> > LSDJunctionNetwork::calculate_junction_angles(vector<in
     {
       // check the junction to see if it has two or more donors
       donors = get_donor_nodes(this_junc);
- 
+
       // it has donors
       if( int(donors.size()) >= 2)
       {
@@ -1176,35 +1176,35 @@ map<int, vector<float> > LSDJunctionNetwork::calculate_junction_angles(vector<in
         {
           cout << "Warning, this junction is a weirdo and has more than two donors. I am going to use the first two donors." << endl;
         }
-        
-        
+
+
         // reset the temp vector
         temp_junctioninfo = four_element;
-        
+
         //cout << "The donor junctions are: " << donors[0] << ", " << donors[1] << endl;
         // now get the two segments.
-        // The ending node is the current junction, the starting nodes are the 
-        // two donor junctions. 
+        // The ending node is the current junction, the starting nodes are the
+        // two donor junctions.
         end_node = get_Node_of_Junction(this_junc);
         start_node1 = get_Node_of_Junction(donors[0]);
         start_node2 = get_Node_of_Junction(donors[1]);
-        
+
         // extract the channel information
         LSDIndexChannel c1(start_node1, end_node,FlowInfo);
         LSDIndexChannel c2(start_node2, end_node,FlowInfo);
-        
+
         // now get the locations of the nodes in the channels in x,y coordinates
         c1.get_coordinates_of_channel_nodes(x1, y1);
         c2.get_coordinates_of_channel_nodes(x2, y2);
-        
+
         junction_order = get_StreamOrder_of_Junction(FlowInfo,this_junc);
         donor1_order = get_StreamOrder_of_Junction(FlowInfo,donors[0]);
         donor2_order = get_StreamOrder_of_Junction(FlowInfo,donors[1]);
-        
+
         temp_junctioninfo[1] = float(junction_order);
         temp_junctioninfo[2] = float(donor1_order);
         temp_junctioninfo[3] = float(donor2_order);
-        
+
         // now calculate the angle
         this_angle = angle_between_two_vector_datasets(x1, y1,x2, y2,channel_points_downstream);
         this_angle = fabs(this_angle);
@@ -1212,7 +1212,7 @@ map<int, vector<float> > LSDJunctionNetwork::calculate_junction_angles(vector<in
         //cout << "Angle is: " << this_angle << " radians, which is " << deg(this_angle) << " degrees." << endl;
         //cout << "Stream order is " << junction_order << " with donor 1: " << donor1_order << " and donor2: " << donor2_order << endl;
         temp_junctioninfo[0] = this_angle;
-        
+
         map_of_junction_angles[this_junc] = temp_junctioninfo;
       }
       else
@@ -1222,25 +1222,105 @@ map<int, vector<float> > LSDJunctionNetwork::calculate_junction_angles(vector<in
       }
     }
   }
-  
-  
+
+
   return map_of_junction_angles;
 }
+
+
+//=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
+// This function gets the mean and standard error of every junction angle
+// upslope of a given junction
+//=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
+vector<float> LSDJunctionNetwork::calculate_junction_angle_statistics_upstream_of_junction(int target_junction, LSDFlowInfo& FlowInfo)
+{
+  // get all the upslope junctions
+  vector<int> JunctionList = get_upslope_junctions(target_junction);
+  vector<float> JI_stats;
+
+  // now get all the
+  map<int, vector<float> >::iterator iter;
+  map<int, vector<float> > JuncInfo = calculate_junction_angles(JunctionList,FlowInfo);
+
+  // now get statistics from these
+  vector<float> junc_angles;
+  vector<float> this_JI;
+
+  for(iter = JuncInfo.begin(); iter != JuncInfo.end(); ++iter)
+  {
+    this_JI = iter->second;
+    junc_angles.push_back(this_JI[0]);
+  }
+
+  // now get the stats
+  float mean = get_mean(junc_angles);
+  float stddev = get_standard_deviation(junc_angles,mean);
+  float stderr =  get_standard_error(junc_angles,stddev);
+
+  JI_stats.push_back(mean);
+  JI_stats.push_back(stderr);
+  JI_stats.push_back(float(junc_angles.size()));
+
+  return JI_stats;
+
+}
+
+//=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
+//
+// This gets the junction angle stats for all basins of a given size
+//
+//=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
+void LSDJunctionNetwork::calculate_junction_angle_statistics_for_order(LSDFlowInfo& FlowInfo, int BasinOrder,
+                             vector<int>& junction_list,
+                             vector<float>& junction_angle_averages,
+                             vector<float>& junction_angle_stderr,
+                             vector<int>& N_junctions)
+{
+  vector<float> jaavg;
+  vector<float> jastderr;
+  vector<int> N_j;
+
+  // get all the junctions of a given order
+  vector<int> OutletJunctions = ExtractBasinJunctionOrder(BasinOrder, FlowInfo);
+
+  // the required information
+  pair<vector<float>,vector<float> > JA_stats;
+
+  // now loop through these, getting the statistics of the upstream junctions.
+  vector<float> JA_info;
+  int n_outlets = int(OutletJunctions.size());
+  for(int i = 0; i<n_outlets; i++)
+  {
+    JA_info = calculate_junction_angle_statistics_upstream_of_junction(OutletJunctions[i], FlowInfo);
+    jaavg.push_back(JA_info[0]);
+    jastderr.push_back(JA_info[1]);
+    N_j.push_back( int(JA_info[2]) );
+  }
+
+  // replace the data vectors
+  junction_list = OutletJunctions;
+  junction_angle_averages = jaavg;
+  junction_angle_stderr = jastderr;
+  N_junctions = N_j;
+
+}
+
+
 
 //=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
 //
 // This prints junction angles to a csv file
 //
 //=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
-void LSDJunctionNetwork::print_junction_angles_to_csv(vector<int> JunctionList, 
-                                                       LSDFlowInfo& FlowInfo, 
+void LSDJunctionNetwork::print_junction_angles_to_csv(vector<int> JunctionList,
+                                                       LSDFlowInfo& FlowInfo,
                                                        string csv_name)
 {
   ofstream csv_out;
   csv_out.open(csv_name.c_str());
   csv_out.precision(9);
-  
-  
+
+
   // get the junction information
   map<int, vector<float> > JuncInfo = calculate_junction_angles(JunctionList, FlowInfo);
   map<int, vector<float> >::iterator iter;
@@ -1255,17 +1335,17 @@ void LSDJunctionNetwork::print_junction_angles_to_csv(vector<int> JunctionList,
   {
     this_junc = iter->first;
     this_JI = iter->second;
-    
+
     jso = int(this_JI[1]);
     d1so = int(this_JI[2]);
     d2so = int(this_JI[3]);
-    
+
     // get the row and column of the junction from the junction node
     this_node = JunctionVector[this_junc];
     LSDCoordinateConverterLLandUTM Converter;
     FlowInfo.retrieve_current_row_and_col(this_node,curr_row,curr_col);
     get_lat_and_long_locations(curr_row, curr_col, latitude,longitude, Converter);
-    
+
     // print to the csv file
     csv_out << latitude <<"," << longitude <<"," << this_junc <<"," << jso << ","
             << d1so << "," << d2so << "," << deg(this_JI[0]) << endl;
@@ -1276,7 +1356,28 @@ void LSDJunctionNetwork::print_junction_angles_to_csv(vector<int> JunctionList,
 
 
 
+
 //=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
+// This function agregates junction level statistics for larger basins
+// Is primarily intended for use with junction angle code but could 
+// also be used to get statistics about the different slopes or other 
+// junction level statistics
+//=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
+/*
+int LSDJunctionNetwork::calculate_basin_averages_from_junction_list(vector<int>& BasinJunctions, LSDFlowInfo& FlowInfo)
+{
+  
+  // loop through the basins getting the basin statistics. 
+  int n_basin_junctions = int(BasinJunctions.size());
+  for (int jn = 0; jn<n_basin_junctions; j++)
+  {
+  
+  }
+
+
+}
+*/
+
 //=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
 // this function gets the junction index of a node.  If there is not a junction at this node
 // then it will give NoDataValue
@@ -2256,7 +2357,7 @@ LSDIndexRaster LSDJunctionNetwork::ExtractBasinsOrder(int BasinOrder, LSDFlowInf
   }
   // Return raster with all nth order drainage basins.
   LSDIndexRaster basin_raster(NRows,NCols,XMinimum,YMinimum,DataResolution,NoDataValue,basins,GeoReferencingStrings);
-	return basin_raster;
+  return basin_raster;
 }
 
 //=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=--=-=-=-=-=-=-=-=-=-=-=-=
@@ -2275,8 +2376,13 @@ vector<int> LSDJunctionNetwork::ExtractBasinJunctionOrder(int BasinOrder, LSDFlo
     // Note that the nth order basins are defined as capturing the full
     // drainage area for the nth order stream.  An nth order stream terminates
     // at a junction an order greater than order n.
+
     if (StreamOrderVector[junctionID] == BasinOrder)
     {
+      //cout << "Found a junction that is of the correct order." << endl;
+      //cout << "Junction is: " << junctionID << endl;
+      //cout << "This junction order is: " <<  StreamOrderVector[junctionID] << endl;
+      
       // Get info from ChanelNetwork object regarding position of junction
       current_junc = junctionID;//JunctionVector[junctionID];
       receiver_junc = ReceiverVector[current_junc];
@@ -2286,9 +2392,52 @@ vector<int> LSDJunctionNetwork::ExtractBasinJunctionOrder(int BasinOrder, LSDFlo
       if (receiver_junc_SO > BasinOrder)
       {
         //use the node tester to get rid of any basins that are beheaded
-        if (node_tester(FlowInfo, current_junc) == false){
+        if (node_tester(FlowInfo, current_junc) == false)
+        {
           Junctions.push_back(current_junc);
         }
+      }
+    }
+  }
+
+  return Junctions;
+}
+
+
+//=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=--=-=-=-=-=-=-=-=-=-=-=-=
+// This function extracts the juctions of all non-beheaded drainage basins 
+// of a given order, n
+// It keeps basins that abut nodata values
+
+//=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=--=-=-=-=-=-=-=-=-=-=-=-=
+vector<int> LSDJunctionNetwork::ExtractBasinJunctionOrderKeepEdgeBasins(int BasinOrder, LSDFlowInfo& FlowInfo)
+{
+  vector<int> Junctions;
+  // Loop through junction network until you reach nth order channel junction.
+
+  int current_junc,receiver_junc,receiver_junc_SO;
+  for (int junctionID=0; junctionID<NJunctions; ++junctionID)
+  {
+    // Loop through all stream junctions of the required basin order.
+    // Note that the nth order basins are defined as capturing the full
+    // drainage area for the nth order stream.  An nth order stream terminates
+    // at a junction an order greater than order n.
+
+    if (StreamOrderVector[junctionID] == BasinOrder)
+    {
+      //cout << "Found a junction that is of the correct order." << endl;
+      //cout << "Junction is: " << junctionID << endl;
+      //cout << "This junction order is: " <<  StreamOrderVector[junctionID] << endl;
+      
+      // Get info from ChanelNetwork object regarding position of junction
+      current_junc = junctionID;//JunctionVector[junctionID];
+      receiver_junc = ReceiverVector[current_junc];
+      receiver_junc_SO = StreamOrderVector[receiver_junc];
+      // Identify outlet of nth order basin using the condition that the
+      // receiver junction should be of higher order.
+      if (receiver_junc_SO > BasinOrder)
+      {
+        Junctions.push_back(current_junc);
       }
     }
   }
@@ -7144,6 +7293,7 @@ void LSDJunctionNetwork::print_junctions_to_csv(LSDFlowInfo& FlowInfo, string fn
   for (int i = 0; i<NJunctions; i++)
   {
     JunctionList.push_back(i);
+    //cout << "The stream order of junction " << i << " is " << StreamOrderVector[i] << endl;
   }
 
   // open the outfile
@@ -7151,7 +7301,7 @@ void LSDJunctionNetwork::print_junctions_to_csv(LSDFlowInfo& FlowInfo, string fn
   sources_out.open(fname.c_str());
   sources_out.precision(9);
 
-  sources_out << "junction,node,x,y,latitude,longitude" << endl;
+  sources_out << "junction,node,x,y,latitude,longitude, stream_order" << endl;
 
   // this is for latitude and longitude
   LSDCoordinateConverterLLandUTM Converter;
@@ -7171,7 +7321,7 @@ void LSDJunctionNetwork::print_junctions_to_csv(LSDFlowInfo& FlowInfo, string fn
 
     // print to file
     sources_out << JunctionList[i] << "," << this_node << "," << x_loc << ","
-                << y_loc << "," << latitude << "," << longitude << endl;
+                << y_loc << "," << latitude << "," << longitude << "," << StreamOrderVector[ JunctionList[i] ] << endl;
 
   }
   sources_out.close();
@@ -7207,7 +7357,7 @@ void LSDJunctionNetwork::print_junctions_to_csv(LSDFlowInfo& FlowInfo, vector<in
   sources_out.open(fname.c_str());
   sources_out.precision(9);
 
-  sources_out << "junction,node,x,y,latitude,longitude" << endl;
+  sources_out << "junction,node,x,y,latitude,longitude,stream_order" << endl;
 
   // this is for latitude and longitude
   LSDCoordinateConverterLLandUTM Converter;
@@ -7227,7 +7377,7 @@ void LSDJunctionNetwork::print_junctions_to_csv(LSDFlowInfo& FlowInfo, vector<in
 
     // print to file
     sources_out << JunctionList[i] << "," << this_node << "," << x_loc << ","
-                << y_loc << "," << latitude << "," << longitude << endl;
+                << y_loc << "," << latitude << "," << longitude << "," << StreamOrderVector[ JunctionList[i] ] << endl;
 
   }
 
@@ -7299,5 +7449,34 @@ void LSDJunctionNetwork::get_overlapping_channels(LSDFlowInfo& FlowInfo,
   source_nodes = NewSources;
 }
 //=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
+// This function takes in two vectors with the rows and cols of a line and finds
+//the pixels along the line >= a threshold stream order
+// FJC 16/04/17
+//=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
+vector<int> LSDJunctionNetwork::get_channel_pixels_along_line(vector<int> line_rows, vector<int> line_cols, int threshold_SO, LSDFlowInfo& FlowInfo)
+{
+  vector<int> outlet_nodes;
+  int n_pixels = line_rows.size();
+  int this_NI = 0;
+  cout << "Returning the points on the line with a SO >= " << threshold_SO << endl;
+
+  //for each pixel along the line, check if the SO is greater than the threshold
+  for (int i = 0; i < n_pixels; i++)
+  {
+    int NI = FlowInfo.retrieve_node_from_row_and_column(line_rows[i], line_cols[i]);
+    if (this_NI != NI)  // check for duplicates
+    {
+      int this_SO = get_StreamOrder_of_Node(FlowInfo, NI);
+      if (this_SO >= threshold_SO)
+      {
+        //push back the node to the outlet
+        outlet_nodes.push_back(NI);
+      }
+      this_NI = NI;
+    }
+  }
+
+  return outlet_nodes;
+}
 
 #endif

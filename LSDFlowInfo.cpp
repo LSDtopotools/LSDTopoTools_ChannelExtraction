@@ -84,6 +84,7 @@
 #include <fstream>
 #include <iomanip>
 #include <vector>
+#include <list>
 #include <string>
 #include <cstring>
 #include <algorithm>
@@ -825,17 +826,38 @@ void LSDFlowInfo::retrieve_current_row_and_col(int current_node,int& curr_row,
 //
 // BG 20/02/2017
 //
-//=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
+//=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
 void LSDFlowInfo::get_x_and_y_from_current_node(int current_node, float& current_X, float& current_Y)
 {
   int cr,cc;
   retrieve_current_row_and_col(current_node, cr,cc);
   get_x_and_y_locations(cr, cc, current_X, current_Y);
 }
-//=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
+//=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
 
-//=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
-//=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
+
+//=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
+// algorithms for searching the vectors
+// This gets the lat and long coordinates of the current node
+//
+//
+//=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
+void LSDFlowInfo::get_lat_and_long_from_current_node(int current_node, double& current_lat, double& current_long, LSDCoordinateConverterLLandUTM Converter)
+{
+  int cr,cc;
+  retrieve_current_row_and_col(current_node, cr,cc);
+  double latitude;
+  double longitude;
+  get_lat_and_long_locations(cr, cc, latitude, longitude, Converter);
+  
+  current_lat = latitude;
+  current_long = longitude;
+}
+//=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
+
+
+//=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
+//=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
 // algorithms for searching the vectors
 // This gets the row and column of the current node
 //
@@ -6143,6 +6165,80 @@ vector< Array2D<float> > LSDFlowInfo::HilltopFlowRouting_Profile(LSDRaster Eleva
   return OutputArrays;
 }
 
+
+
+//=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
+//
+// This function takes a starting node, gets all upslope nodes, and determines
+// if they are bounded by noddata. Those that are not are eliminated from the
+// list so that what remains are nodes that are fully within the 
+//
+//=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
+vector<int> LSDFlowInfo::basin_edge_extractor(int outlet_node, LSDRaster& Topography)
+{
+  
+  int n_nodes = (RowIndex.size());
+  int i,j;
+  
+  vector<int> upslope_nodes;
+  if (outlet_node < n_nodes)
+  {
+    // first get the nodes upstream of the source node
+    upslope_nodes = get_upslope_nodes(outlet_node);
+  }
+  else
+  {
+    cout << "Fatal error, outlet node doesn't exist." << endl;
+    exit(EXIT_FAILURE);
+  }
+
+  // stupidly memory intensive but I can't think of a better way to do it without
+  // masses of logic statments.
+  Array2D<float> BasinData(NRows, NCols, NoDataValue);
+
+  //create subset arrays for just the basin data - this should be rolled into its own method.
+  cout << "The number of nodes in this basin is: " <<  upslope_nodes.size() << endl;
+  for (int q = 0; q < int(upslope_nodes.size()); ++q)
+  {
+    
+    retrieve_current_row_and_col(upslope_nodes[q], i, j);
+    BasinData[i][j] = upslope_nodes[q];
+  }
+
+  vector<int> perim;
+  int NDVCount;
+  for (int q = 0; q < int(upslope_nodes.size()); ++q)
+  {
+    
+    retrieve_current_row_and_col(upslope_nodes[q], i, j);
+    NDVCount = 0;
+      
+    if (i == 0 || j == 0 || i == NRows-1 || j == NRows-1)
+    {
+      // We are not going to worry about corners since anything
+      // with NDVCount > 1 is classed as a potential boundary. 
+      NDVCount = 3;
+    }
+    else
+    {     
+      //count border cells that are NDV
+      if (BasinData[i-1][j-1] == NoDataValue){ ++NDVCount; }
+      if (BasinData[i][j-1] == NoDataValue){ ++NDVCount; }
+      if (BasinData[i+1][j-1] == NoDataValue){ ++NDVCount; }
+      if (BasinData[i-1][j] == NoDataValue){ ++NDVCount; }
+      if (BasinData[i+1][j] == NoDataValue){ ++NDVCount; }
+      if (BasinData[i-1][j+1] == NoDataValue){ ++NDVCount; }
+      if (BasinData[i][j+1] == NoDataValue){ ++NDVCount; }
+      if (BasinData[i+1][j+1] == NoDataValue){ ++NDVCount; }
+    }
+    if (NDVCount >= 1 && NDVCount < 8)
+    {
+      perim.push_back(upslope_nodes[q]);
+    }
+  }
+  
+  return perim;
+}
 //=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
 //
 // This function makes a mask of all the pixels that recieve flow (d8)

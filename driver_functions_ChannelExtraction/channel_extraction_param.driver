@@ -1,0 +1,30 @@
+# Parameters for channel extraction
+# Comments are preceeded by the hash symbol
+# Documentation can be found here:
+# TBA
+
+# These are parameters for the file i/o
+# IMPORTANT: You MUST make the write directory: the code will not work if it doens't exist.
+read path: /home/s0923330/Datastore/DEMs_for_analysis/coastal_california/eel_river/
+write path: /home/s0923330/Datastore/DEMs_for_analysis/coastal_california/eel_river/
+read fname: Eel_DEM_clip
+write fname: Eel_DEM_clip
+channel heads fname: NULL
+
+# Parameter for filling the DEM
+min_slope_for_fill: 0.0001
+
+# Parameters for selecting channels and basins
+
+threshold_contributing_pixels: 2500
+surface_fitting_radius: 16
+pruning_drainage_area: 50
+connected_components_threshold: 10
+print_area_threshold_channels: false
+print_wiener_channels: true
+print_pelletier_channels: false
+print_dreich_channels: false
+
+write hillshade: true
+print_stream_order_raster: true
+print_wiener_filtered_raster: true

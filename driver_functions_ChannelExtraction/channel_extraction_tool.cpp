@@ -82,9 +82,14 @@ int main (int nNumberofArgs,char *argv[])
     cout << "|| Welcome to the channel extraction tool!             ||" << endl;
     cout << "|| This program has a number of options to extract     ||" << endl;
     cout << "|| channel networks.                                   ||" << endl;
-    cout << "|| This program was developed by Simon M. Mudd         ||" << endl;
-    cout << "|| Fiona J. Clubb and Simon M. Mudd"                   ||
+    cout << "|| This program was developed byFiona J. Clubb         ||" << endl;
+    cout << "||  and Simon M. Mudd                                  ||" << endl;
     cout << "||  at the University of Edinburgh                     ||" << endl;
+    cout << "|| If you use this code on a tropical beach please     ||" << endl;
+    cout << "||  post a picture on instagram,                       ||" << endl;
+    cout << "||  since here in the UK our research funding is       ||" << endl;
+    cout << "||  tied to vaguely defined impact and we are not sure ||" << endl;
+    cout << "||  but perhaps social media counts.                   ||" << endl;
     cout << "=========================================================" << endl;
     cout << "This program requires two inputs: " << endl;
     cout << "* First the path to the parameter file." << endl;

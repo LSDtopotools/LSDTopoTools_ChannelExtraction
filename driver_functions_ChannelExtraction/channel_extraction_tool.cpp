@@ -82,7 +82,7 @@ int main (int nNumberofArgs,char *argv[])
     cout << "|| Welcome to the channel extraction tool!             ||" << endl;
     cout << "|| This program has a number of options to extract     ||" << endl;
     cout << "|| channel networks.                                   ||" << endl;
-    cout << "|| This program was developed byFiona J. Clubb         ||" << endl;
+    cout << "|| This program was developed by Fiona J. Clubb        ||" << endl;
     cout << "||  and Simon M. Mudd                                  ||" << endl;
     cout << "||  at the University of Edinburgh                     ||" << endl;
     cout << "|| If you use this code on a tropical beach please     ||" << endl;

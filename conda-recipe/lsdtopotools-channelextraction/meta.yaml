@@ -1,0 +1,31 @@
+package:
+  name: lsdtopotools-channelextraction
+  version: "1.0"
+
+source:
+  path: ../..
+  # git_url: https://github.com/LSDtopotools/LSDTopoTools_ChannelExtraction.git
+  # git_rev: master
+
+requirements:
+  build:
+    - cmake
+    - gcc
+    - gdal
+    - fftw
+  run:
+    - gdal
+    - fftw
+
+build:
+  number: 1
+
+about:
+  home: https://github.com/LSDtopotools/LSDTopoTools_ChannelExtraction
+  license: GPLv3
+  summary: 'Different methods of channel extraction implemented in LSDTopoTools'
+
+# install conda-build (in root environment)
+# and then run
+# $ conda build lsdtopotools-channelextraction -c conda-forge
+# from the conda-recipe directory

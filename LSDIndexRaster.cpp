@@ -127,6 +127,8 @@ void LSDIndexRaster::create()
 void LSDIndexRaster::create(string filename, string extension)
 {
   read_raster(filename,extension);
+  vector<int> list_unique_values;
+
 }
 
 // this creates a raster filled with the data in data
@@ -154,6 +156,7 @@ void LSDIndexRaster::create(int nrows, int ncols, float xmin, float ymin,
     cout << "LSDIndexRaster create::dimension of data is not the same as stated in NRows!" << endl;
     exit(EXIT_FAILURE);
   }
+  vector<int> list_unique_values;
 
 }
 //=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
@@ -175,6 +178,7 @@ void LSDIndexRaster::create(int nrows, int ncols, float xmin, float ymin,
   DataResolution = cellsize;
   NoDataValue = ndv;
   GeoReferencingStrings = GRS_map;
+  vector<int> list_unique_values;
 
   RasterData = data.copy();
 
@@ -207,6 +211,7 @@ void LSDIndexRaster::create(int nrows, int ncols, float xmin, float ymin,
   DataResolution = cellsize;
   NoDataValue = ndv;
   GeoReferencingStrings = GRS_map;
+  vector<int> list_unique_values;
 
   Array2D<int> TempData(NRows,NCols,ConstValue);
 
@@ -241,6 +246,7 @@ void LSDIndexRaster::create(LSDRaster& NonIntLSDRaster)
   NoDataValue = NonIntLSDRaster.get_NoDataValue();
   GeoReferencingStrings = NonIntLSDRaster.get_GeoReferencingStrings();
   Array2D<float> RasterDataFloat = NonIntLSDRaster.get_RasterData();
+  vector<int> list_unique_values;
 
   //Declarations
   Array2D<int> RasterDataInt(NRows,NCols,NoDataValue);
@@ -269,6 +275,7 @@ void LSDIndexRaster::create(LSDRaster& ARaster, int ConstValue)
   NoDataValue = ARaster.get_NoDataValue();
   GeoReferencingStrings = ARaster.get_GeoReferencingStrings();
   Array2D<int> RasterDataInt(NRows,NCols,ConstValue);
+  vector<int> list_unique_values;
 
   RasterData = RasterDataInt.copy();
 }
@@ -294,7 +301,7 @@ void LSDIndexRaster::read_raster(string filename, string extension)
   string string_filename;
   string dot = ".";
   string_filename = filename+dot+extension;
-  cout << "The filename is " << string_filename << endl;
+  //cout << "The filename is " << string_filename << endl;
   int DataType = 2;
 
   if (extension == "asc")
@@ -311,10 +318,10 @@ void LSDIndexRaster::read_raster(string filename, string extension)
            >> str >> DataResolution
           >> str >> NoDataValue;
 
-    cout << "Loading asc file; NCols: " << NCols << " NRows: " << NRows << endl
-         << "X minimum: " << XMinimum << " YMinimum: " << YMinimum << endl
-         << "Data Resolution: " << DataResolution << " and No Data Value: "
-         << NoDataValue << endl;
+    //cout << "Loading asc file; NCols: " << NCols << " NRows: " << NRows << endl
+    //     << "X minimum: " << XMinimum << " YMinimum: " << YMinimum << endl
+    //     << "Data Resolution: " << DataResolution << " and No Data Value: "
+    //     << NoDataValue << endl;
 
     // this is the array into which data is fed
     Array2D<int> data(NRows,NCols,NoDataValue);
@@ -357,10 +364,10 @@ void LSDIndexRaster::read_raster(string filename, string extension)
     }
     ifs.close();
 
-    cout << "Loading asc file; NCols: " << NCols << " NRows: " << NRows << endl
-       << "X minimum: " << XMinimum << " YMinimum: " << YMinimum << endl
-         << "Data Resolution: " << DataResolution << " and No Data Value: "
-         << NoDataValue << endl;
+    //cout << "Loading flt file; NCols: " << NCols << " NRows: " << NRows << endl
+    //   << "X minimum: " << XMinimum << " YMinimum: " << YMinimum << endl
+    //     << "Data Resolution: " << DataResolution << " and No Data Value: "
+    //     << NoDataValue << endl;
 
     // this is the array into which data is fed
     Array2D<int> data(NRows,NCols,NoDataValue);
@@ -471,7 +478,7 @@ void LSDIndexRaster::read_raster(string filename, string extension)
             istringstream iss(lines[counter]);
             iss >> str >> str >> str >> str >> str;
             DataType = atoi(str.c_str());
-            cout << "Data Type = " << DataType << endl;
+            //cout << "Data Type = " << DataType << endl;
 
             // advance to the end so you move on to the new loop
             counter = lines.size();
@@ -727,10 +734,10 @@ void LSDIndexRaster::read_raster(string filename, string extension)
     }
     ifs_data.close();
 
-    cout << "Loading ENVI bil file; NCols: " << NCols << " NRows: " << NRows << endl
-         << "X minimum: " << XMinimum << " YMinimum: " << YMinimum << endl
-         << "Data Resolution: " << DataResolution << " and No Data Value: "
-         << NoDataValue << endl;
+    //cout << "Loading ENVI bil file; NCols: " << NCols << " NRows: " << NRows << endl
+    //     << "X minimum: " << XMinimum << " YMinimum: " << YMinimum << endl
+    //     << "Data Resolution: " << DataResolution << " and No Data Value: "
+    //     << NoDataValue << endl;
 
     // now update the objects raster data
     RasterData = data.copy();
@@ -929,10 +936,23 @@ void LSDIndexRaster::get_x_and_y_locations(int row, int col, double& x_loc, doub
 
 //=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
 //
+// This function returns list_unique_values vector
+//
+//=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
+vector<int> LSDIndexRaster::get_list_of_values()
+{
+  detect_unique_values();
+  return list_unique_values;
+}
+//=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
+
+//=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
+//
 // This function returns the x and y location of a row and column
 // Same as above but with floats
 //
 //=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
+
 void LSDIndexRaster::get_x_and_y_locations(int row, int col, float& x_loc, float& y_loc)
 {
 
@@ -1457,6 +1477,7 @@ LSDIndexRaster LSDIndexRaster::clip_to_smaller_raster(LSDRaster& smaller_raster)
   {
     for(int col = 0; col<New_NCols; col++)
     {
+       //cout << row << " ¦¦ " << col << endl;
        NewData[row][col] = RasterData[row+YUL_row][col+XLL_col];
     }
   }
@@ -1468,6 +1489,30 @@ LSDIndexRaster LSDIndexRaster::clip_to_smaller_raster(LSDRaster& smaller_raster)
   TrimmedRaster.Update_GeoReferencingStrings();
 
   return TrimmedRaster;
+}
+
+//=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
+// THis copy the Nodata region from another raster WITH THE SAME DIMENSION AND RESOLUTION. 
+//=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
+void LSDIndexRaster::NoData_from_another_raster(LSDRaster& other_raster)
+{
+  
+
+  //Array2D<int> NewData(NRows,NCols, NoDataValue);
+  //Array2D<float> other_raster_data = other_raster.get_RasterData();
+
+  for(int row = 0; row< NRows; row++)
+  {
+    for(int col = 0; col<NCols; col++)
+    {
+      if(other_raster.get_data_element(row,col) == NoDataValue)
+      {
+        RasterData[row][col] = NoDataValue;
+      }
+    }
+  }
+
+
 }
 
 //=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
@@ -2985,9 +3030,10 @@ LSDIndexRaster LSDIndexRaster::remove_checkerboard_pattern()
 // results are in a vector:
 // 0 - reliability
 // 1 - sensitvity
-// 2 - false positive rate
-// 3 - true negative rate
-// 4 - false negative rate
+// 2 - quality
+// 3 - false positive rate
+// 4 - true negative rate
+// 5 - false negative rate
 // FJC 29/06/16
 //=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
 vector<float> LSDIndexRaster::AnalysisOfQuality(LSDIndexRaster& ActualRaster)
@@ -3032,12 +3078,15 @@ vector<float> LSDIndexRaster::AnalysisOfQuality(LSDIndexRaster& ActualRaster)
   cout << "SumTP = " << SumTP << " SumFP = " << SumFP << " SumTN = " << SumTN << " SUM FN = " << SumFN << endl;
   float r = SumTP/(SumTP + SumFP);
   float s = SumTP/(SumTP + SumFN);
+  float q = SumTP/(SumTP + SumFP + SumFN);
 
   //now calculate the quality analyses
   //reliability
   quality_results[0] = SumTP/(SumTP + SumFP);
 	//sensitivity r_tp
 	quality_results[1] = SumTP/(SumTP + SumFN);
+  //quality
+  quality_results[2] = q;
 	// r_fp
 	quality_results[2] = SumFP/(SumFP + SumTN);
 	// r_tn
@@ -3045,7 +3094,7 @@ vector<float> LSDIndexRaster::AnalysisOfQuality(LSDIndexRaster& ActualRaster)
 	// r_fn
 	quality_results[4] = 1 - quality_results[1];
 
-  cout << "r: " << r << " s: " << s << endl;
+  cout << "r: " << r << " s: " << s << " q: " << q << endl;
 
   return quality_results;
 }
@@ -3105,5 +3154,74 @@ void LSDIndexRaster::MergeIndexRasters(LSDIndexRaster& RasterToAdd)
 	}
 }
 
+//=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
+// Method to pad values in an LSDIndexRaster by a certain number of pixels, within the extent
+// of the original raster. Values taken from nearest pixel with precedence from bottom right
+// to top left. Diagonals given equal preference to orthogonals for now.
+// MDH 20/07/17
+//=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
+void LSDIndexRaster::PadRaster(int NPixels)
+{
+  // Arrays of indexes of neighbour cells with respect to target cell
+  int dX[] = {1, 1, 1, 0, -1, -1, -1, 0};
+  int dY[] = {-1, 0, 1, 1, 1, 0, -1, -1};
+  Array2D<int> NewRasterData = RasterData.copy();
+
+  // Loop through pad size (quick and dirty!)
+  for (int n = 0; n<NPixels; ++n)
+  {
+    //loop across the whole raster array
+	  for (int row = 0; row < NRows; row++)
+	  {
+		  for (int col = 0; col < NCols; col++)
+		  {
+			  // if there is a raster value, pad the cells around it with it's own value
+			  if (RasterData[row][col] != NoDataValue)
+			  {
+				  //loop through the 8 neighbours of the target cell
+          for (int c = 0; c < 8; ++c)
+          {
+            //handle edges here
+            if ((row +dY[c] > NRows-1) || (col + dX[c] > NCols-1) || (row+dY[c]<0) || (col+dY[c]<0)) continue;
+
+            //otherwise update values
+            else if (RasterData[row+dY[c]][col+dX[c]] == NoDataValue) NewRasterData[row+dY[c]][col+dX[c]] = RasterData[row][col];
+          }
+			  }
+		  }
+	  }
+	}
+	RasterData = NewRasterData.copy();
+}
+
+
+//=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
+// Function to detect and store all the unique values
+// into the vector list_unique_values. Detect if this has already been launched to avoid relaunch.
+//  No param
+//  Nothing, change directly the protected vector attribute
+//  BG
+//  17/09/17
+//=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
+void LSDIndexRaster::detect_unique_values()
+{
+  // first check if this method has already been launched
+
+  if(list_unique_values.size()==0)
+  {
+    cout << "I am checking all the unique value of your lithologic map" << endl;
+    for (int row = 0; row < NRows -1; row++)
+    {
+      for (int col = 0; col < NCols -1; col++)
+      {
+        if ((find(list_unique_values.begin(), list_unique_values.end(),RasterData[row][col])==list_unique_values.end()))
+        {
+          list_unique_values.push_back(RasterData[row][col]);
+          cout << "I am adding this unique value " << RasterData[row][col] << endl;
+        }
+      }
+    }
+  }
+}
 
 #endif

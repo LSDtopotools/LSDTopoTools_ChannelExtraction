@@ -190,6 +190,7 @@ class LSDIndexRaster
   /// @return Map of strings containing georeferencing information
   map<string,string> get_GeoReferencingStrings() const { return GeoReferencingStrings; }
 
+
   /// Assignment operator.
   LSDIndexRaster& operator=(const LSDIndexRaster& LSDIR);
 
@@ -211,6 +212,11 @@ class LSDIndexRaster
   /// @author SMM
   /// @date 01/01/12
   void read_raster(string filename, string extension);
+
+  /// @brief Return the list of value but check if it has been initialized
+  /// @author BG
+  /// @date 19/09/2017
+  vector<int> get_list_of_values();
 
   /// @brief Read a raster from memory to a file.
   ///
@@ -588,6 +594,29 @@ class LSDIndexRaster
   /// @date 07/04/17
   void MergeIndexRasters(LSDIndexRaster& RasterToAdd);
 
+  /// @brief Function to pad values in an LSDIndexRaster by a certain number of pixels
+  /// with values taken from the nearest pixel to be padded.
+  /// @param NPixels the number of pixels to pad by
+	/// @return LSDIndexRaster padded raster
+  /// @author MDH
+  /// @date 20/07/17
+  void PadRaster(int NPixels);
+
+  /// @brief Function to detect and store all the unique values
+  /// into the vector list_unique_values. Detect if this has already been launched to avoid relaunch.
+  /// @param No param
+	/// @return Nothing, change directly the protected vector attribute
+  /// @author BG
+  /// @date 17/09/17
+  void detect_unique_values();
+
+  /// @brief Function to copy NoData Region from another raster
+  /// @param LSDRaster OtherRaster
+  /// @return Nothing, change directly the value of the raster
+  /// @author BG
+  /// @date 20/09/2017 
+  void NoData_from_another_raster(LSDRaster& other_raster);
+
   protected:
   ///Number of rows.
   int NRows;
@@ -602,6 +631,8 @@ class LSDIndexRaster
   float DataResolution;
   ///No data value.
   int NoDataValue;
+  /// list of unique values, for example in case of a lithologic raster
+  vector<int> list_unique_values;
 
   ///A map of strings for holding georeferencing information
   map<string,string> GeoReferencingStrings;

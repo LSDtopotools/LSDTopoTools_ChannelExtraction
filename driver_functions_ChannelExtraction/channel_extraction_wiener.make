@@ -1,7 +1,7 @@
 # make with make -f channel_extraction_wiener.make
 
 CC=g++
-CFLAGS=-c -Wall -O3
+CFLAGS=-c -Wall -O3 
 OFLAGS = -Wall -O3
 LDFLAGS= -Wall
 SOURCES=channel_extraction_wiener.cpp \
@@ -16,10 +16,10 @@ SOURCES=channel_extraction_wiener.cpp \
         ../LSDIndexChannelTree.cpp \
         ../LSDStatsTools.cpp \
         ../LSDChiNetwork.cpp \
-        ../LSDShapeTools.cpp
+        ../LSDShapeTools.cpp 
 LIBS= -lm -lstdc++ -lfftw3
 OBJECTS=$(SOURCES:.cpp=.o)
-EXECUTABLE=channel_extraction_wiener
+EXECUTABLE=channel_extraction_wiener.exe
 
 all: $(SOURCES) $(EXECUTABLE)
 
@@ -28,7 +28,3 @@ $(EXECUTABLE): $(OBJECTS)
 
 .cpp.o:
 	$(CC) $(CFLAGS) $< -o $@
-
-install: $(EXECUTABLE)
-	mkdir -p $(PREFIX)/bin
-	cp $< $(PREFIX)/bin/$(EXECUTABLE)

@@ -82,7 +82,7 @@ int main (int nNumberofArgs,char *argv[])
     cout << "|| Welcome to the channel extraction tool!             ||" << endl;
     cout << "|| This program has a number of options to extract     ||" << endl;
     cout << "|| channel networks.                                   ||" << endl;
-    cout << "|| This program was developed by Fiona J. Clubb        ||" << endl;
+    cout << "|| This program was developed by Fiona J. Clubb         ||" << endl;
     cout << "||  and Simon M. Mudd                                  ||" << endl;
     cout << "||  at the University of Edinburgh                     ||" << endl;
     cout << "|| If you use this code on a tropical beach please     ||" << endl;
@@ -122,7 +122,14 @@ int main (int nNumberofArgs,char *argv[])
   map<string,float> float_default_map;
   map<string,bool> bool_default_map;
   map<string,string> string_default_map;
-
+  
+  // Basic DEM preprocessing
+  float_default_map["minimum_elevation"] = 0.0;
+  float_default_map["maximum_elevation"] = 30000;
+  float_default_map["min_slope_for_fill"] = 0.0001;
+  bool_default_map["raster_is_filled"] = false; // assume base raster is already filled
+  bool_default_map["remove_seas"] = true; // elevations above minimum and maximum will be changed to nodata
+  
   // set default float parameters
   int_default_map["threshold_contributing_pixels"] = 1000;
   int_default_map["connected_components_threshold"] = 100;
@@ -138,7 +145,6 @@ int main (int nNumberofArgs,char *argv[])
   float_default_map["m_over_n"] = 0.5;
 
   // set default methods
-  bool_default_map["load_filled_raster"] = false;
   bool_default_map["print_area_threshold_channels"] = true;
   bool_default_map["print_dreich_channels"] = false;
   bool_default_map["print_pelletier_channels"] = false;
@@ -155,6 +161,7 @@ int main (int nNumberofArgs,char *argv[])
 
   bool_default_map["print_sources_to_csv"] = true;
   bool_default_map["print_channels_to_csv"] = true;
+  bool_default_map["print_junctions_to_csv"] = false;
 
   bool_default_map["print_dinf_drainage_area_raster"] = false;
   bool_default_map["print_d8_drainage_area_raster"] = false;
@@ -193,31 +200,60 @@ int main (int nNumberofArgs,char *argv[])
   // check to see if the raster exists
   LSDRasterInfo RI((DATA_DIR+DEM_ID), raster_ext);
 
-  // load the base raster
-  LSDRaster topography_raster((DATA_DIR+DEM_ID), raster_ext);
+  // load the  DEM
+  LSDRaster topography_raster;
+  if (this_bool_map["remove_seas"])
+  {
+    cout << "I am removing high and low values to get rid of things that should be nodata." << endl;
+    LSDRaster start_raster((DATA_DIR+DEM_ID), raster_ext);
+    // now get rid of the low and high values
+    float lower_threshold = this_float_map["minimum_elevation"];
+    float upper_threshold = this_float_map["maximum_elevation"];
+    bool belowthresholdisnodata = true;
+    LSDRaster Flooded = start_raster.mask_to_nodata_using_threshold(lower_threshold,belowthresholdisnodata);
+    belowthresholdisnodata = false;
+    topography_raster = Flooded.mask_to_nodata_using_threshold(upper_threshold,belowthresholdisnodata);
+
+    if (this_bool_map["print_raster_without_seas"])
+    {
+      cout << "I'm replacing your raster with a raster without seas." << endl;
+      string this_raster_name = OUT_DIR+OUT_ID;
+      topography_raster.write_raster(this_raster_name,raster_ext);
+    }
+  }
+  else
+  {
+    LSDRaster start_raster((DATA_DIR+DEM_ID), raster_ext);
+    topography_raster = start_raster;
+  }
   cout << "Got the dem: " <<  DATA_DIR+DEM_ID << endl;
+
 
 
   //============================================================================
   // Start gathering necessary rasters
   //============================================================================
-  // Get the fill
+  
   LSDRaster filled_topography;
-  if (this_bool_map["load_filled_raster"])
+  // now get the flow info object
+  if ( this_bool_map["raster_is_filled"] )
   {
-    LSDRaster load_fill((OUT_DIR+OUT_ID+"_Fill"), raster_ext);
-    filled_topography = load_fill;
+    cout << "You have chosen to use a filled raster." << endl;
+    filled_topography = topography_raster;
   }
   else
   {
-    cout << "Filling topography." << endl;
+    cout << "Let me fill that raster for you, the min slope is: "
+         << this_float_map["min_slope_for_fill"] << endl;
     filled_topography = topography_raster.fill(this_float_map["min_slope_for_fill"]);
+  }
 
-    if (this_bool_map["print_fill_raster"])
-    {
-      string filled_raster_name = OUT_DIR+OUT_ID+"_Fill";
-      filled_topography.write_raster(filled_raster_name,raster_ext);
-    }
+
+
+  if (this_bool_map["print_fill_raster"])
+  {
+    string filled_raster_name = OUT_DIR+OUT_ID+"_Fill";
+    filled_topography.write_raster(filled_raster_name,raster_ext);
   }
 
   // check to see if you need hillshade
@@ -240,12 +276,11 @@ int main (int nNumberofArgs,char *argv[])
   //=================================================================
   if (this_bool_map["print_dinf_drainage_area_raster"])
   {
+    cout << "I am writing dinf drainage area to raster." << endl;
     string DA_raster_name = OUT_DIR+OUT_ID+"_dinf_area";
-    LSDRaster DA1 = filled_topography.D_inf_ConvertFlowToArea();
-
-    // get some randon points
-    //cout << "dinf:" << endl <<  DA1.get_data_element(452,364) << " " << DA1.get_data_element(1452,762) << endl;
-    DA1.write_raster(DA_raster_name,raster_ext);
+    LSDRaster DA1 = filled_topography.D_inf();
+    LSDRaster DA2 = DA1.D_inf_ConvertFlowToArea();
+    DA2.write_raster(DA_raster_name,raster_ext);
   }
 
   if (this_bool_map["print_d8_drainage_area_raster"])
@@ -386,6 +421,21 @@ int main (int nNumberofArgs,char *argv[])
       }
 
     }
+
+    // print junctions
+    if( this_bool_map["print_junctions_to_csv"])
+    {
+      cout << "I am writing the junctions to csv." << endl;
+      string channel_csv_name = OUT_DIR+OUT_ID+"_AT_JN.csv";
+      ChanNetwork.print_junctions_to_csv(FlowInfo, channel_csv_name);
+
+      if ( this_bool_map["convert_csv_to_geojson"])
+      {
+        string gjson_name = OUT_DIR+OUT_ID+"_AT_JN.geojson";
+        LSDSpatialCSVReader thiscsv(channel_csv_name);
+        thiscsv.print_data_to_geojson(gjson_name);
+      }
+    }
   }
 
   //===============================================================
@@ -496,6 +546,21 @@ int main (int nNumberofArgs,char *argv[])
         thiscsv.print_data_to_geojson(gjson_name);
       }
 
+    }
+
+    // print junctions
+    if( this_bool_map["print_junctions_to_csv"])
+    {
+      cout << "I am writing the junctions to csv." << endl;
+      string channel_csv_name = OUT_DIR+OUT_ID+"_D_JN.csv";
+      NewChanNetwork.print_junctions_to_csv(FlowInfo, channel_csv_name);
+
+      if ( this_bool_map["convert_csv_to_geojson"])
+      {
+        string gjson_name = OUT_DIR+OUT_ID+"_D_JN.geojson";
+        LSDSpatialCSVReader thiscsv(channel_csv_name);
+        thiscsv.print_data_to_geojson(gjson_name);
+      }
     }
 
   }
@@ -643,6 +708,21 @@ int main (int nNumberofArgs,char *argv[])
 
     }
 
+    // print junctions
+    if( this_bool_map["print_junctions_to_csv"])
+    {
+      cout << "I am writing the junctions to csv." << endl;
+      string channel_csv_name = OUT_DIR+OUT_ID+"_P_JN.csv";
+      NewChanNetwork.print_junctions_to_csv(FlowInfo, channel_csv_name);
+
+      if ( this_bool_map["convert_csv_to_geojson"])
+      {
+        string gjson_name = OUT_DIR+OUT_ID+"_P_JN.geojson";
+        LSDSpatialCSVReader thiscsv(channel_csv_name);
+        thiscsv.print_data_to_geojson(gjson_name);
+      }
+    }
+
   }
 
   //===============================================================
@@ -681,6 +761,8 @@ int main (int nNumberofArgs,char *argv[])
     //this processes the end points to only keep the upper extent of the channel network
     cout << "getting channel heads" << endl;
     vector<int> tmpsources = FlowInfo.ProcessEndPointsToChannelHeads(Ends);
+
+    cout << "got all the end points" << endl;
 
     // we need a temp junction network to search for single pixel channels
     LSDJunctionNetwork tmpJunctionNetwork(tmpsources, FlowInfo);
@@ -736,6 +818,21 @@ int main (int nNumberofArgs,char *argv[])
       {
         string gjson_name = OUT_DIR+OUT_ID+"_W_CN.geojson";
         LSDSpatialCSVReader thiscsv(OUT_DIR+OUT_ID+"_W_CN.csv");
+        thiscsv.print_data_to_geojson(gjson_name);
+      }
+    }
+
+    // print junctions
+    if( this_bool_map["print_junctions_to_csv"])
+    {
+      cout << "I am writing the junctions to csv." << endl;
+      string channel_csv_name = OUT_DIR+OUT_ID+"_W_JN.csv";
+      ChanNetwork.print_junctions_to_csv(FlowInfo, channel_csv_name);
+
+      if ( this_bool_map["convert_csv_to_geojson"])
+      {
+        string gjson_name = OUT_DIR+OUT_ID+"_W_JN.geojson";
+        LSDSpatialCSVReader thiscsv(channel_csv_name);
         thiscsv.print_data_to_geojson(gjson_name);
       }
     }

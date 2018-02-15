@@ -266,7 +266,7 @@ class LSDJunctionNetwork
   ///  is replaced in the function
   /// @author SMM
   /// @date 24/04/2017
-  void calculate_junction_angle_statistics_for_order(LSDFlowInfo& FlowInfo, int BasinOrder, 
+  void calculate_junction_angle_statistics_for_order(LSDFlowInfo& FlowInfo, int BasinOrder,
                              vector<int>& junction_list,
                              vector<float>& junction_angle_averages,
                              vector<float>& junction_angle_stderr,
@@ -274,13 +274,13 @@ class LSDJunctionNetwork
 
 
   /// @brief This prints the junction angles to a csv file
-  /// @param JunctionList The list of junctions to analyze. If this is an empty vector, 
+  /// @param JunctionList The list of junctions to analyze. If this is an empty vector,
   ///  the code analyses all junctions in the DEM
   /// @param FlowInfo The LSDFlowInfo object
   /// @param csv_name The name of the file. Needs full path and csv extension
   /// @author SMM
   /// @date 23/04/2017
-  void print_junction_angles_to_csv(vector<int> JunctionList, LSDFlowInfo& FlowInfo, 
+  void print_junction_angles_to_csv(vector<int> JunctionList, LSDFlowInfo& FlowInfo,
                                                        string csv_name);
 
   /// @brief This gets the junction number of a given node.
@@ -383,6 +383,87 @@ class LSDJunctionNetwork
   vector<int> Prune_Junctions_Edge(vector<int>& BaseLevelJunctions_Initial,LSDFlowInfo& FlowInfo);
 
   /// @brief This function takes a list of junctions and then prunes
+  ///  junctions based whether they drain from the edge. This attempts to
+  ///  remove junctions that are through-flowing and thus do not have the
+  ///  correct drainage area
+  /// @detail Only gets the donor of the baselelve donor to ignore the nodes
+  ///  near the outlet, which often intersect nodata in cut DEMs
+  /// @param BaseLevelJunctions_Initial a vector of integers containg an inital
+  ///  list of base level nodes
+  /// @param FlowInfo The LSDFlowInfo object
+  /// @param TestRaster A raster that is just used to look for nodata
+  /// @return a pruned list of base level nodes
+  /// @author SMM
+  /// @date 29/05/17
+  vector<int> Prune_Junctions_Edge_Ignore_Outlet_Reach(vector<int>& BaseLevelJunctions_Initial,
+                                              LSDFlowInfo& FlowInfo, LSDRaster& TestRaster);
+
+  /// @brief This function looks through all baselevel nodes and then
+  ///  looks for the largest basin that is not influenced by the edge.
+  ///  It returns a vector of these junctions.
+  /// @detail Note that it only returns one basin per baselevel node at most
+  ///  so might not do a great job of space filling.
+  /// @param BaseLevelJunctions_Initial a vector of integers containg an inital
+  ///  list of base level nodes
+  /// @param FlowInfo The LSDFlowInfo object
+  /// @param TestRaster A raster that is just used to look for nodata
+  /// @param FlowAcc an LSDIndexRaster with the number of pixels for flow accumulation
+  /// @return a pruned list of base level nodes
+  /// @author SMM
+  /// @date 21/06/17
+  vector<int> Prune_To_Largest_Complete_Basins(vector<int>& BaseLevelJunctions_Initial,
+                                              LSDFlowInfo& FlowInfo, LSDRaster& TestRaster,
+                                              LSDIndexRaster& FlowAcc);
+
+
+    /// @brief This function removes basins that fall outside a contributing pixel
+    ///  Window
+    /// @param Junctions_Initial a vector of integers containg an inital
+    ///  list of junctions
+    /// @param FlowInfo The LSDFlowInfo object
+    /// @param FlowAcc an LSDIndexRaster with the number of pixels for flow accumulation
+    /// @param lower_limit The minimum number of contributing pixels
+    /// @param upper_limit The maximum number of contributing pixels
+    /// @return a pruned list of base level nodes
+    /// @author SMM
+    /// @date 26/06/17
+    vector<int> Prune_Junctions_By_Contributing_Pixel_Window(vector<int>& Junctions_Initial,
+                                              LSDFlowInfo& FlowInfo, LSDIndexRaster& FlowAcc,
+                                              int lower_limit, int upper_limit);
+
+
+    /// @brief This function removes basins that fall outside a contributing pixel
+    ///  Window, those that are bounded by nodata, and those that
+    ///  are nested. A rather intensive pruning process that hopeuflly results
+    ///  in a number of basins that are a similar size
+    /// @detail This doesn't just look for baselevel junctions: it goes through
+    ///  all junctions in the DEM. Warning: computationally expensive!
+    /// @param FlowInfo The LSDFlowInfo object
+    /// @param TestRaster A raster that is just used to look for nodata
+    /// @param FlowAcc an LSDIndexRaster with the number of pixels for flow accumulation
+    /// @param lower_limit The minimum number of contributing pixels
+    /// @param upper_limit The maximum number of contributing pixels
+    /// @return a pruned list of base level nodes
+    /// @author SMM
+    /// @date 26/06/17
+    vector<int>  Prune_Junctions_By_Contributing_Pixel_Window_Remove_Nested_And_Nodata(LSDFlowInfo& FlowInfo,
+                                              LSDRaster& TestRaster, LSDIndexRaster& FlowAcc,
+                                              int lower_limit, int upper_limit);
+
+    /// @brief This function removes basins that are nested within any other
+    ///  basin in the list
+    /// @param Junctions_Initial a vector of integers containg an inital
+    ///  list of junctions
+    /// @param FlowInfo The LSDFlowInfo object
+    /// @param TestRaster A raster that is just used to look for nodata
+    /// @param FlowAcc an LSDIndexRaster with the number of pixels for flow accumulation
+    /// @return a pruned list of base level nodes
+    /// @author SMM
+    /// @date 26/06/17
+    vector<int> Prune_Junctions_If_Nested(vector<int>& Junctions_Initial,
+                                      LSDFlowInfo& FlowInfo, LSDIndexRaster& FlowAcc);
+
+  /// @brief This function takes a list of junctions and then prunes
   ///  junctions based on their number of contributing pixels
   /// @param BaseLevelJunctions_Initial a vector of integers containg an inital
   ///  list of base level nodes
@@ -409,6 +490,51 @@ class LSDJunctionNetwork
   vector<int> Prune_Junctions_Largest(vector<int>& BaseLevelJunctions_Initial,LSDFlowInfo& FlowInfo,
                               LSDIndexRaster& FlowAcc);
 
+  /// @brief This function takes a list of junctions retains ONLY the junctions
+  ///  that have an outlet elevation greater or less than the threshold elevation
+  ///  Selection of greater or lower is determined by bool keep_junctions_below_threshold
+  /// @param BaseLevelJunctions_Initial a vector of integers containg an inital
+  ///  list of base level nodes
+  /// @param FlowInfo The LSDFlowInfo object
+  /// @param Elev an LSDRaster of elevation
+  /// @param threshold_elevation the threshold elevation to kepp
+  /// @param keep_junctions_below_threshold if true keep junctions below threshold
+  /// @return a pruned list of base level nodes
+  /// @author SMM
+  /// @date 18/01/18
+  vector<int> Prune_Junctions_Threshold_Elevation(vector<int>& BaseLevelJunctions_Initial,
+                                              LSDFlowInfo& FlowInfo, LSDRaster& Elev, 
+                                              float threshold_elevation, bool keep_junctions_below_threshold);
+
+  /// @brief This function takes a list of junctions retains ONLY the junctions
+  ///  that have an outlet elevation with an elevation window
+  /// @param BaseLevelJunctions_Initial a vector of integers containg an inital
+  ///  list of base level nodes
+  /// @param FlowInfo The LSDFlowInfo object
+  /// @param Elev an LSDRaster of elevation
+  /// @param lower_threshold the lower threshold elevation
+  /// @param upper_threshold the lower threshold elevation
+  /// @return a pruned list of base level nodes
+  /// @author SMM
+  /// @date 19/01/18
+  vector<int> Prune_Junctions_Elevation_Window(vector<int>& BaseLevelJunctions_Initial,
+                                              LSDFlowInfo& FlowInfo, LSDRaster& Elev, 
+                                              float lower_threshold, float upper_threshold);
+
+
+  /// @brief You give this a list of junction numbers and it returns the
+  ///  number of upslope pixels
+  /// @param BaseLevelJunctions_Initial a vector of integers containg an inital
+  ///  list of base level nodes
+  /// @param FlowInfo The LSDFlowInfo object
+  /// @param FlowAcc an LSDIndexRaster with the number of pixels for flow accumulation
+  /// @param Threshold The minimum number of accumulated pixels needed to keep
+  ///   a base level node.
+  /// @return a vector with the N contributing pixels for the junctions specified
+  /// @author SMM
+  /// @date 21/06/17
+  vector<int> get_contributing_pixels_from_specified_junctions(vector<int>& JunctionList,
+                                              LSDFlowInfo& FlowInfo, LSDIndexRaster& FlowAcc);
 
   /// @brief Get Junction number at a location.
   /// @param row Integer row index.
@@ -1242,9 +1368,17 @@ vector<int> GetChannelHeadsChiMethodFromValleys(vector<int> ValleyNodes,
   /// @return Returns the NodeIndex of the nearest channel node.
   /// @author SMM
   /// @date 21/10/2013
-  int get_nodeindex_of_nearest_channel_for_specified_coordinates(float X_coordinate,
-                            float Y_coordinate, int threshold_stream_order, int search_radius_nodes,
-                            LSDFlowInfo& FlowInfo);
+  int get_nodeindex_of_nearest_channel_for_specified_coordinates(float X_coordinate,float Y_coordinate, int threshold_stream_order, int search_radius_nodes,LSDFlowInfo& FlowInfo);
+
+  /// @brief Function to snap input coordinates to the nearest channel node from latitude and longitude
+  /// @param latitude
+  /// @param longitude
+  /// @param FlowInfo LSDFlowInfo object.
+  /// @param Converter LSDCoordinateConverterLLandUTM object
+  /// @return Returns the NodeIndex of the nearest channel node.
+  /// @author FJC
+  /// @date 20/11/17
+  int get_junction_of_nearest_channel_from_lat_long(double latitude, double longitude, LSDFlowInfo& FlowInfo, LSDCoordinateConverterLLandUTM Converter);
 
 
 	/// @brief Function to get info about the nearest channel node of a given node.
@@ -1270,8 +1404,7 @@ vector<int> GetChannelHeadsChiMethodFromValleys(vector<int> ValleyNodes,
 	/// @param Relief float to store relief compared to nearest channel
   /// @author FJC
   /// @date 05/10/16
-
-void get_info_nearest_channel_to_node_main_stem(int& StartingNode, LSDFlowInfo& FlowInfo, LSDRaster& ElevationRaster, LSDRaster& DistFromOutlet, LSDIndexChannel& MainStem, int& ChannelNode, float& FlowLength, float& DistanceUpstream, float& Relief);
+  void get_info_nearest_channel_to_node_main_stem(int& StartingNode, LSDFlowInfo& FlowInfo, LSDRaster& ElevationRaster, LSDRaster& DistFromOutlet, LSDIndexChannel& MainStem, int& ChannelNode, float& FlowLength, float& DistanceUpstream, float& Relief);
 
 
   /// @brief This function takes a node index, checks to see if it is on a channel,
@@ -1387,12 +1520,32 @@ void get_info_nearest_channel_to_node_main_stem(int& StartingNode, LSDFlowInfo& 
   /// @details Gets the node of a junction
   /// @param junction integer node index.
   /// @return Integer node of junction.
+  /// @author SMM
+  /// @date 01/01/2014
   int get_Node_of_Junction(int junction) const;
 
   /// @details Gets the receiver of a junction
   /// @param junction integer reciever index.
   /// @return Integer reciever of junction.
+  /// @author SMM
+  /// @date 01/01/2014
   int get_Receiver_of_Junction(int junction) const;
+
+  /// @details Gets a node list from a junction list
+  /// @param junction_list a vector of junctions
+  /// @return vector of nodes
+  /// @author SMM
+  /// @date 20/01/2018
+  vector<int> get_node_list_from_junction_list(vector<int> junction_list);
+
+
+  /// @details Gets a node list from a junction list. The nodes are the penultimate nodes before the reciever juctions
+  /// @param junction_list a vector of junctions
+  /// @param FlowInfo the LSDFlowInfo object
+  /// @return vector of nodes
+  /// @author SMM
+  /// @date 20/01/2018
+  vector<int> get_node_list_of_penultimate_node_from_junction_list(vector<int> junction_list, LSDFlowInfo& FlowInfo);
 
   /// @details Get downstream junction
   /// @param starting_junction starting junction
@@ -1435,13 +1588,22 @@ void get_info_nearest_channel_to_node_main_stem(int& StartingNode, LSDFlowInfo& 
   /// @date 26/10/2014
   int get_Next_StreamOrder_Junction(int junction);
 
-	/// @details Returns an integer to check whether junction
-	/// is at base level.
-	/// @param junction the junction of interest
-	/// @ return int  1 = base level, 0 = not base level
-	/// @author FJC
-	/// @date 11/01/2017
-	int is_Junction_BaseLevel(int junction);
+  /// @details Returns an bool to check whether junction
+  ///  is upstream of another base level
+  /// @param current_junction the junction of interest
+  /// @param test_junction the junction to see if it is upstream
+  /// @ return true or false
+  /// @author SMM
+  /// @date 23/06/2017
+  bool is_junction_upstream(int current_junction, int test_junction);
+
+  /// @details Returns an integer to check whether junction
+  /// is at base level.
+  /// @param junction the junction of interest
+  /// @ return int  1 = base level, 0 = not base level
+  /// @author FJC
+  /// @date 11/01/2017
+  int is_Junction_BaseLevel(int junction);
 
   /// @return The number of junctions
   int get_NJunctions() const { return int(JunctionVector.size()); }
@@ -1539,6 +1701,65 @@ void get_info_nearest_channel_to_node_main_stem(int& StartingNode, LSDFlowInfo& 
                                 LSDRaster& DistanceFromOutlet,
                                 vector<int>& source_nodes, vector<int>& outlet_nodes,
                                 int n_nodes_to_visit);
+
+  /// @detail This overwrites two vecotrs that give all of the starting and
+  ///  finishing nodes of channels in a basin
+  /// @param FlowInfo an LSDFlowInfo object
+  /// @param BaseLevel_Junctions an integer vector that contains the base level junctions
+  /// @param DistanceFromOutlet an LSDRaster with the flow distance
+  /// @param source_nodes a vector continaing the sorted sorce nodes (by flow distance)
+  ///  THIS GETS OVERWRITTEN
+  /// @param outlet_nodes a vector continaing the outlet nodes
+  ///  THIS GETS OVERWRITTEN
+  /// @param baselevel_nodes a vector continaing the baselevel nodes (i.e. the node of the outlet of the basin)
+  ///  THIS GETS OVERWRITTEN
+  /// @author SMM
+  /// @date 21/06/2017
+  void get_overlapping_channels(LSDFlowInfo& FlowInfo, vector<int> BaseLevel_Junctions,
+                                LSDRaster& DistanceFromOutlet,
+                                vector<int>& source_nodes, vector<int>& outlet_nodes,
+                                vector<int>& baselevel_nodes,
+                                int n_nodes_to_visit);
+
+  /// @detail This overwrites two vectors that give all of the starting and
+  ///  finishing nodes of channels in a basin continuing downstream from the selected junction to its outlet
+  /// @param FlowInfo an LSDFlowInfo object
+  /// @param BaseLevel_Junctions an integer vector that contains the base level junctions
+  /// @param DistanceFromOutlet an LSDRaster with the flow distance
+  /// @param source_nodes a vector continaing the sorted sorce nodes (by flow distance)
+  ///  THIS GETS OVERWRITTEN
+  /// @param outlet_nodes a vector continaing the outlet nodes
+  ///  THIS GETS OVERWRITTEN
+  /// @author MDH
+  /// @date 16/6/2017
+  void get_overlapping_channels_to_downstream_outlets(LSDFlowInfo& FlowInfo,
+                                    vector<int> BaseLevel_Junctions,
+                                    LSDRaster& DistanceFromOutlet,
+                                    vector<int>& source_nodes,
+                                    vector<int>& outlet_nodes,
+                                    int n_nodes_to_visit);
+
+  /// @detail This overwrites two vectors that give all of the starting and
+  ///  finishing nodes of channels in a basin continuing downstream from the selected junction to its outlet
+  /// @brief I THINK THIS MIGHT CAUSE A SEG FAULT: NEED TO UPDATE!!!!!
+  /// @param FlowInfo an LSDFlowInfo object
+  /// @param BaseLevel_Junctions an integer vector that contains the base level junctions
+  /// @param DistanceFromOutlet an LSDRaster with the flow distance
+  /// @param source_nodes a vector continaing the sorted sorce nodes (by flow distance)
+  ///  THIS GETS OVERWRITTEN
+  /// @param outlet_nodes a vector continaing the outlet nodes
+  ///  THIS GETS OVERWRITTEN
+  /// @param baselevel_nodes a vector continaing the baselevel nodes (i.e. the node of the outlet of the basin)
+  ///  THIS GETS OVERWRITTEN
+  /// @author SMM
+  /// @date 21/6/2017
+  void get_overlapping_channels_to_downstream_outlets(LSDFlowInfo& FlowInfo,
+                                    vector<int> BaseLevel_Junctions,
+                                    LSDRaster& DistanceFromOutlet,
+                                    vector<int>& source_nodes,
+                                    vector<int>& outlet_nodes,
+                                    vector<int>& baselevel_nodes,
+                                    int n_nodes_to_visit);
 
 /// @detail This function gets all the pixels along a line defined by a series of points and finds the pixels greater than a specified stream order.
 /// @param Points PointData object with the points

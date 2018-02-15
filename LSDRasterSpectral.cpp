@@ -426,8 +426,92 @@ void LSDRasterSpectral::generate_fractal_surface_spectral_method(float beta)
   dfftw2D_inv(OutputArrayReal, OutputArrayImaginary,
   	              InputArray, transform_direction);
 
-  RasterData = InputArray;
+  RasterData = InputArray.copy();
 }
+
+//=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
+//
+// This creates a fractal surface using the spectral method
+// The method works as follows:
+//  1) Generate a random surface
+//  2) Perform DFT on this random surface
+//  3) Scale the tranform (both real and imaginary parts) by 1/f^beta
+//  4) Perform the inverse DFT.
+//
+//  This results in a pseudo fractal surface that can be used in comarison
+//  with real topography
+//
+//=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
+void LSDRasterSpectral::generate_fractal_surface_spectral_method(float beta, float desired_relief)
+{
+  // first generate a random field
+  float range = 1.0;
+  rewrite_with_random_values(range);
+
+  // now get the frequency scaling
+  Array2D<float> freq_scaling = get_frequency_scaling_array(beta);
+
+  // now get the real and imaginary DFT arrays
+  // first set up the input and output arrays
+  Array2D<float> InputArray = RasterData.copy();
+  Array2D<float> OutputArrayReal = RasterData.copy();
+  Array2D<float> OutputArrayImaginary = RasterData.copy();
+  int transform_direction = -1;   // this means it will be a forward transform
+
+  // perform the fourier annalysis
+  dfftw2D_fwd(InputArray, OutputArrayReal, OutputArrayImaginary,transform_direction);
+  cout << "Performed DFT! " << endl;
+
+  // now scale the DFT. We replace values in the output arrays
+  for(int row = 0; row<NRows; row++)
+  {
+    for (int col = 0; col<NCols; col++)
+    {
+      OutputArrayReal[row][col] = OutputArrayReal[row][col]*freq_scaling[row][col];
+      OutputArrayImaginary[row][col] = OutputArrayImaginary[row][col]*freq_scaling[row][col];
+    }
+  }
+
+  // now perform the inverse transform
+  // this overwrites the InputArray
+  transform_direction = 1;
+  dfftw2D_inv(OutputArrayReal, OutputArrayImaginary,
+                InputArray, transform_direction);
+                
+                
+                
+  // now scale the data
+  // now scale the DFT. We replace values in the output arrays
+  float MaxElev = -999999999;
+  float MinElev = 999999999;
+  for(int row = 0; row<NRows; row++)
+  {
+    for (int col = 0; col<NCols; col++)
+    {
+      if (InputArray[row][col] > MaxElev)
+      {
+        MaxElev = InputArray[row][col];
+      }
+      if (InputArray[row][col] < MinElev)
+      {
+        MinElev = InputArray[row][col];
+      }
+    }
+  }
+  
+  float rel = MaxElev-MinElev;
+  for(int row = 0; row<NRows; row++)
+  {
+    for (int col = 0; col<NCols; col++)
+    {
+      InputArray[row][col] =  ((InputArray[row][col]-MinElev)/rel)*desired_relief;
+    }
+  }
+
+  RasterData = InputArray.copy();
+}
+
+
 
 
 //=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
@@ -2031,7 +2115,7 @@ void LSDRasterSpectral::find_rollover_frequency(float& rollover_frequency, float
   float beta_max = 0;
   float r2_max = 0;
   float rollover_freq = 0;
-  float rollover_freq_r2 = 0;
+  //float rollover_freq_r2 = 0;
   int NBins = bin_mean_PSD.size();
   vector<float> log_bin_mean_PSD,log_bin_mean_freq;
   vector<int> bin_index;
@@ -2078,7 +2162,7 @@ void LSDRasterSpectral::find_rollover_frequency(float& rollover_frequency, float
     if(R_sq_i > r2_max)
     {
       r2_max = R_sq_i;
-      rollover_freq_r2 = bin_mean_freq[bin_index[i]];
+      //rollover_freq_r2 = bin_mean_freq[bin_index[i]];
       rollover_index_r2 = i;
     }
   }
@@ -2137,6 +2221,7 @@ void LSDRasterSpectral::find_rollover_frequency(float& rollover_frequency, float
 // calculate_background_spectrum
 void LSDRasterSpectral::calculate_background_spectrum(float rollover_frequency, float beta, float log_bin_width, int N_iterations, int window_option)
 {
+  cout << "LINE 2224. I am going to calculate rollover frequency, so I am ignoring the one you gave to me." << endl;
   int N = RadialPSD.size();
   vector<float> background_PSD(N,0.0);
   vector<float> normalised_PSD(N,0.0);
@@ -2167,10 +2252,12 @@ void LSDRasterSpectral::calculate_background_spectrum(float rollover_frequency, 
   Array2D<float> fractal_raster_window(NRows,NCols,0.0);
   Array2D<float> trend_plane(NRows,NCols,0.0);
   Array2D<float> window(NRows,NCols,0.0);     
-  float mean_fractal,variance_fractal,mean_topo,variance_topo,mean_dt,variance_dt;
+  float mean_fractal,variance_fractal,mean_dt,variance_dt;
+  //float variance_topo;
+  //float mean_topo;
   int transform_direction;
-  mean_topo = get_mean_ignore_ndv(RasterData, NoDataValue);
-  variance_topo = get_variance_ignore_ndv(RasterData, NoDataValue, mean_topo);
+  //mean_topo = get_mean_ignore_ndv(RasterData, NoDataValue);
+  //variance_topo = get_variance_ignore_ndv(RasterData, NoDataValue, mean_topo);
   detrend2D(RasterData, raster_dt, trend_plane);
   mean_dt = get_mean_ignore_ndv(raster_dt, NoDataValue);
   variance_dt = get_variance_ignore_ndv(raster_dt, NoDataValue, mean_dt);
@@ -2409,8 +2496,8 @@ void LSDRasterSpectral::full_spectral_analysis(float log_bin_width, int N_iterat
   // CALCULATE BACKGROUND FREQUENCY AND NORMALISED SPECTRUM
   cout << "\t calculate background frequency..."  << endl;
   // Initiate output vectors
-  float rollover_beta;
-  float rollover_frequency;
+  float rollover_beta = 0.1;      // This isn't used. Now the code finds a rollover beta. 
+  float rollover_frequency = 0.1;     // This isn't used. Now the code finds a rollover frequency. 
   calculate_background_spectrum(rollover_frequency, rollover_beta, log_bin_width, N_iterations,window_option);
   
 }

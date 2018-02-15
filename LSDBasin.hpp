@@ -186,7 +186,7 @@ class LSDBasin
   /// @return Percentile value.
   /// @author SWDG
   /// @date 5/2/17
-  float CalculateBasinPercentile(LSDFlowInfo& FlowInfo, LSDRaster Data, int Percentile); 
+  float CalculateBasinPercentile(LSDFlowInfo& FlowInfo, LSDRaster Data, int Percentile);
 
   /// @brief Calculate the Standard Deviation of values of an LSDRaster which falls inside a basin.
   /// @param FlowInfo Flowinfo object.
@@ -385,12 +385,35 @@ class LSDBasin
   /// @date 12/12/13
   void set_Perimeter(LSDFlowInfo& FlowInfo);
 
+  /// @brief Set the perimeter pixels by passing in
+  /// your own vector of perimeter nodes.
+  /// @param perimeter_nodes vector of perimeter nodes
+  /// @author FJC
+  /// @date 26/01/18
+  void set_perimeter_from_vector(vector<int> perimeter_nodes) { Perimeter_nodes = perimeter_nodes; }
+
   /// @brief Prints the perimeter nodes to a csv file
   /// @param FlowInfo the LSDFlowInfo object
   /// @param string perimeter_fname
   /// @author SMM
   /// @date 26/04/2017
   void print_perimeter_to_csv(LSDFlowInfo& FlowInfo, string perimeter_fname);
+
+  /// @brief Prints the perimeter nodes to a csv file plus elevations
+  /// @param FlowInfo the LSDFlowInfo object
+  /// @param string perimeter_fname
+  /// @param perimeter_nodes vector of perimeter nodes that can be passed. Pass an empty vector if you want to use
+  /// the default perimeter finder.
+  /// @param ElevationRaster elevation raster
+  /// @author FJC
+  /// @date 10/01/18
+  void print_perimeter_hypsometry_to_csv(LSDFlowInfo& FlowInfo, string perimeter_fname, LSDRaster& ElevationRaster);
+
+  /// @brief Orders perimeter nodes from the outlet
+  /// @param FlowInfo the LSDFlowInfo object
+  /// @author FJC
+  /// @date 16/01/18
+  vector<int> order_perimeter_nodes(LSDFlowInfo& FlowInfo);
 
   /// @brief Set the four different hillslope length measurements for the basin.
   /// @param FlowInfo Flowinfo object.
@@ -534,6 +557,23 @@ class LSDBasin
   /// @date 18/03/2015
 LSDRaster TrimPaddedRasterToBasin(int padding_pixels, LSDFlowInfo& FlowInfo,
                                             LSDRaster& Raster_Data);
+
+  /// @brief This function check if two basin are adjacent
+  /// @detail return true if the two basin are adjacent with at least one pixel
+  ///  TODO add a minimum adjacent pixel parameter
+  /// @param LSDBasin another LSDBasin object
+  /// @author BG
+  /// @date 10/10/2017
+  bool is_adjacent(LSDBasin& DifferentBasin, LSDFlowInfo& flowpy);
+
+/// @brief detect the source nodes in a pixel window around a perimeter, for instance a basin  perimeter
+/// @detail It needs a sequence of nodes where it will loop around and gather all the source nodes encountered.
+/// @param vector of nodes, Flowinfo object and a JunctionNetwork object and a number of pixel for the window.
+/// @return vector of node indices of the new perimeter
+/// @author BG
+/// @date 11/10/17
+vector<int> get_source_node_from_perimeter(vector<int> perimeter, LSDFlowInfo& flowpy, LSDJunctionNetwork& junky, int pixel_window);
+
 
 
   /// @brief Write Junction values into the shape of the basin.
@@ -724,6 +764,55 @@ LSDRaster TrimPaddedRasterToBasin(int padding_pixels, LSDFlowInfo& FlowInfo,
   /// @date 07/12/14
   LSDRaster Merge_Basins(vector<LSDRaster> Basins);
 
+
+  /// @brief Count the number of each unique lithology value contain in the basin from a topographic raster
+  /// take a lithologic raster and a topographic raster in argument
+  ///
+  /// @author BG
+  /// @date 17/09/17
+  map<int,int> count_unique_values_from_litho_raster(LSDIndexRaster& litho, LSDFlowInfo& topo);
+
+
+  /// @brief merge and contour the perimeter from a vector of adjacent basins
+  /// @detail WARNING There may be 1 pixel-size holes in the perimeter.
+  /// @param vector of LSDBasin objects
+  /// @author BG
+  /// @date 10/10/17
+  vector<int> merge_perimeter_nodes_adjacent_basins(vector<LSDBasin> budgerigar, LSDFlowInfo& flowpy);
+
+  /// @brief Compare metrics inside/out of a basin for a given vector of nodes.
+  /// @detail Ill detail when it will be done later
+  /// @param rasterTemplate and the vector of node to test
+  /// @author BG
+  /// @date 23/12/17
+  map<string,float> get_metrics_both_side_divide(LSDRaster& rasterTemplate, LSDFlowInfo& flowpy, vector<int>& nodes_to_test, map<int,bool>& raster_node_basin);
+
+  /// @brief apply a square window around each perimeter nodes and extract statistics on each sides of the basin.
+  /// @detail Ill detail when it will be done later
+  /// @param rasterTemplate and the vector of node to test
+  /// @author BG
+  /// @date 23/12/17
+  void square_window_stat_drainage_divide(LSDRaster& rasterTemplate, LSDFlowInfo& flowpy, int size_window);
+
+  /// write the csv file corresponding to the previously calculated windowed stTS
+  /// @detail Ill detail when it will be done later
+  /// @param
+  /// @author BG
+  /// @date 23/12/17
+  void write_windowed_stats_around_drainage_divide_csv(string full_name, LSDFlowInfo& flowpy);
+
+  /// @brief Preprocess the Drainage Divide tool driver required info
+  /// @detail Set the perimeter and set a map containing the corresponding x,y ...
+  /// @detail TODO: add distance from origin and other global parameters
+  /// @param FlowInfo object corresponding to the original raster where the Basin has been calculated
+  /// @author BG
+  /// @date 26/12/2017
+  void preprocess_DD_metrics(LSDFlowInfo flowpy);
+
+  void organise_perimeter(LSDFlowInfo& flowpy);
+
+  void clean_perimeter(LSDFlowInfo& flowpy);
+
   protected:
 
   //These instance variables are set at initialisation
@@ -747,6 +836,8 @@ LSDRaster TrimPaddedRasterToBasin(int padding_pixels, LSDFlowInfo& FlowInfo,
   int Junction;
   ///Vector of all nodes in basin.
   vector<int> BasinNodes;
+  /// Map of nodes in the basin - faster to check if a node is in the basin due to a binary search tree for large maps
+  map<int,int> nodes_of_basins;
   /// Number of DEM cells.
   int NumberOfCells;
   /// Area in spatial units of the basin.
@@ -805,6 +896,12 @@ LSDRaster TrimPaddedRasterToBasin(int padding_pixels, LSDFlowInfo& FlowInfo,
   vector<int> Perimeter_j;
   /// Basin Perimeter's node index
   vector<int> Perimeter_nodes;
+  /// Basin Perimeter's node index, sorted by followed order
+  vector<int> Perimeter_nodes_sorted;
+  /// corresponding map giving an index to the sorted perimeter. Mostly for testing and debugging purposes.
+  map<int,int> Perimeter_nodes_sorted_id;
+  /// increase the speed of checking whether a node is perimeter or not compare to find in a vector
+  map<int,int> Perimeter_nodes_map;
   /// Cosmo erosion rate.
   float CosmoErosionRate;
   /// Other erosion rate.
@@ -823,6 +920,17 @@ LSDRaster TrimPaddedRasterToBasin(int padding_pixels, LSDFlowInfo& FlowInfo,
   float Biomass;
   // Alternative index (e.g. lithology)
   int AlternativeIndex;
+
+  // Stuffs for DD purposes
+  bool DD_preprocessed;
+  // map of stats around the drainage divide
+  map<int, map<string, float> > stats_around_perimeter_window;
+  // map of distance from the origin of the perimeter, key is the node index
+  map<int,float> map_of_dist_perim;
+  // map of the perimeter location and metrics information per node
+  map<int,vector<float> > DD_map;
+  // map of xy location for each basin nodes. It fasten the process even if a bit memory-consuming.
+  map<int,vector<float> > BasinNodesMapOfXY;
 
   private:
   void create();

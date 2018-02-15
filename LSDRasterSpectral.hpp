@@ -169,7 +169,22 @@ public:
   /// @author SMM
   /// @date 20/02/2014
   void generate_fractal_surface_spectral_method(float beta);
-    
+
+  /// @brief This creates a fractal surface using the spectral method.
+  /// @details The method works as follows:\n
+  ///  1) Generate a random surface.\n
+  ///  2) Perform DFT on this random surface.\n
+  ///  3) Scale the tranform (both real and imaginary parts) by 1/f^beta.\n
+  ///  4) Perform the inverse DFT.\n
+  ///
+  ///  This results in a pseudo fractal surface that can be used in comparison
+  ///  with real topography.
+  /// @param beta value which is the scaling exponent
+  /// @param relief The maximum relief of the resulting surface
+  /// @author SMM
+  /// @date 10/08/2017
+  void generate_fractal_surface_spectral_method(float beta, float desired_relief);
+
   /// @brief FINDS ROLLOVER FREQUENCY.
   ///
   /// @details This function finds the rollover frequency in the power spectrum of a landscape, following Perron et al., 2008; Spectral Signatures of characteristic spatial scales and nonfractal structure in landscapes; Journal of Geophysical Research.  

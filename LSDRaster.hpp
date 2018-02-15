@@ -71,23 +71,24 @@ MASSIVE MERGE: Starting version 1.0.0 on 15/07/2013
 
 /**
 @mainpage
-This is the API documentation for LSDTopotools.
+This  is the documentation for Edinburgh Topographic Analysis Package (ETAP),
+incorporating LSDRaster.
 
 These pages will help you get started using this software.
 
-\image html ./LSD-logo.png
+\image html ./logo.png
 
 
 Tools are included to:
 - Generate topographic metrics
-- Extract Channels
 - Perform Chi analysis
+- And other important science stuff
 .
 
 @author Simon M. Mudd, University of Edinburgh
 @author David Milodowski, University of Edinburgh
-@author Martin D. Hurst, Univeristy of Glasgow
-@author Stuart W. D. Grieve, University College London
+@author Martin D. Hurst, British Geological Survey
+@author Stuart W. D. Grieve, University of Edinburgh
 @author Fiona Clubb, University of Edinburgh
 
 */
@@ -692,6 +693,9 @@ class LSDRaster
   /// @date 16/02/2014
   void DSSetFeatureCorners(int featuresize, float scale);
 
+
+
+
   /// @brief This is the square sampling step of the diamond square algorithm: it takes
   /// the average of the four corners and adds a random number to set the centrepoint
   /// of a square.
@@ -730,7 +734,9 @@ class LSDRaster
   /// in each direction to have rows and columns that are the nearest powers
   /// of 2. The xllocation and yllocation data values are preserved. The function
   /// returns a pseudo fractal landscape generated with the diamond square algorithm
-  ///
+  /// Believe it or not this algorithm is absed on code poseted by Notch, the creator of Minecraft,
+  /// who then had it modified by Charles Randall
+  /// https://www.bluh.org/code-the-diamond-square-algorithm/
   /// @param feature order is an interger n where the feature size consists of 2^n nodes.
   /// If the feature order is set bigger than the dimensions of the parent raster then
   /// this will default to the order of the parent raster.
@@ -739,6 +745,7 @@ class LSDRaster
   /// @author SMM
   /// @date 16/02/2014
   LSDRaster DiamondSquare(int feature_order, float scale);
+
 
   // Functions relating to shading, shadowing and shielding
 
@@ -1050,6 +1057,13 @@ class LSDRaster
   /// @author FJC
   /// @date 24/03/14
   LSDRaster remove_positive_hilltop_curvature(LSDRaster& hilltop_curvature);
+
+  /// @brief Removes positive values from a raster
+  /// @details Modifies araster to remove pixels with
+  /// positive values
+  /// @author MDH
+  /// @date 25/07/17
+  void remove_positive_values();
 
   /// @brief Gets the percentage of bedrock ridges
   /// @details Uses the hilltop curvature raster and the roughness raster. If the
@@ -2081,6 +2095,12 @@ class LSDRaster
   /// @date 27/08/2014
   LSDRaster ExtractByMask(LSDIndexRaster Mask);
 
+  /// @brief Function to update an LSDRaster based on a LSDIndexRaster mask
+  /// @param LSDIndexRaster TheMask
+  /// @author MDH
+  /// @date 26/07/2017
+  void MaskRaster(LSDIndexRaster Mask);
+
   /// @brief method to locate channel pixels outlined by Lashermes.
   ///
   /// @detail picks departure from gaussian behaviour, then uses this as a threshold to create a binary dataset.
@@ -2281,6 +2301,19 @@ class LSDRaster
   /// @author SWDG
   /// @date 23/1/17
   vector< vector<float> > Sample_Along_Ridge(LSDRaster& Raster1, LSDRaster& Raster2, LSDRaster& Raster3, int a, int b, int threshold);
+
+  /// @brief function to convert feet to metres using US international feet,
+  /// where 1 foot = 0.3048006096012192 metres.
+  /// @return raster of elevations in metres
+  /// @author FJC
+  /// @date 16/10/17
+  LSDRaster convert_from_feet_to_metres();
+
+  /// @brief function to convert elevations from centimetres to metres
+  /// @return raster of elevations in metres
+  /// @author FJC
+  /// @date 18/10/17
+  LSDRaster convert_from_centimetres_to_metres();
 
 protected:
 

@@ -126,7 +126,6 @@ int main (int nNumberofArgs,char *argv[])
   // Basic DEM preprocessing
   float_default_map["minimum_elevation"] = 0.0;
   float_default_map["maximum_elevation"] = 30000;
-  float_default_map["min_slope_for_fill"] = 0.0001;
   bool_default_map["raster_is_filled"] = false; // assume base raster is already filled
   bool_default_map["remove_seas"] = true; // elevations above minimum and maximum will be changed to nodata
   
